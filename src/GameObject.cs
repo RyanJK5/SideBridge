@@ -19,5 +19,7 @@ public abstract class GameObject {
         spriteBatch.Draw(texture, position, Color.White);
     }
 
+    public Vector2 GetPosition() => new Vector2(position.X, position.Y);
+
     public virtual void Update(GameTime gameTime) {}
 }

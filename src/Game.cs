@@ -25,13 +25,13 @@ public class Game : Microsoft.Xna.Framework.Game {
     private GraphicsDeviceManager _graphics;
     private SpriteBatch _spriteBatch;
     private List<GameObject> objects;
+    private BlockType[,] world = new BlockType[48, 27];
 
     public int WindowWidth { get => _graphics.PreferredBackBufferWidth; }
 
     public int WindowHeight { get => _graphics.PreferredBackBufferHeight; }
 
-    public const float MaxVelocity = 10f;
-    public const float Acceleration = 1f;
+    public GameTime GameTime { get; private set; }
 
     private Player player;
 
@@ -46,9 +46,14 @@ public class Game : Microsoft.Xna.Framework.Game {
     }
 
     protected override void Initialize() {
-        player = new(Content.Load<Texture2D>("player"), new Vector2(WindowWidth / 2, WindowHeight / 2), 0);
+        var playerTexture = Content.Load<Texture2D>("player");
+        player = new(playerTexture, new Vector2(WindowWidth / 2 - playerTexture.Width / 2, 50), 0);
         AddObject(player);
-        
+        for (var i = 0; i < world.GetLength(0); i++) {
+            for (var j = world.GetLength(1) / 2; j < world.GetLength(1); j++) {
+                world[i,j] = i < (world.GetLength(0) / 2) ? BlockType.Red : BlockType.Blue;
+            }
+        }
         base.Initialize();
     }
 
@@ -57,10 +62,10 @@ public class Game : Microsoft.Xna.Framework.Game {
     }
 
     protected override void Update(GameTime gameTime) {
+        GameTime = gameTime;
         if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape)) {
             Exit();
         }
-        
         foreach (GameObject obj in objects) {
             obj.Update(gameTime);
         }
@@ -72,12 +77,24 @@ public class Game : Microsoft.Xna.Framework.Game {
         GraphicsDevice.Clear(Color.SkyBlue);
 
         _spriteBatch.Begin();
+        int width = Blocks.GetTextureFrom(BlockType.Red).Width;
+        for (var i = 0; i < world.GetLength(0); i++) {
+            for (var j = 0; j < world.GetLength(1); j++) {
+                Blocks.Draw(_spriteBatch, world[i,j], 
+                    new Vector2(width * i, width * j));
+            }
+        }
         foreach (GameObject obj in objects) {
             obj.Draw(_spriteBatch);
         }
         _spriteBatch.End();
 
         base.Draw(gameTime);
+    }
+
+    public BlockType GetTile(float x, float y) {
+        int width = Blocks.GetTextureFrom(BlockType.Red).Width;
+        return world[(int) (x / width), (int) (y / width)];
     }
 
     public void AddObject(GameObject obj) => objects.Add(obj);
