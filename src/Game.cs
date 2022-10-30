@@ -2,6 +2,13 @@
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System.Collections.Generic;
+using MonoGame.Extended;
+using MonoGame.Extended.Tiled;
+using MonoGame.Extended.Tiled.Renderers;
+using MonoGame.Extended.ViewportAdapters;
+using MonoGame.Extended.Entities;
+using SideBridge.Systems;
+using SideBridge.Components;
 
 namespace SideBridge;
 
@@ -24,8 +31,12 @@ public class Game : Microsoft.Xna.Framework.Game {
 
     private GraphicsDeviceManager _graphics;
     private SpriteBatch _spriteBatch;
-    private List<GameObject> objects;
-    private BlockType[,] world = new BlockType[48, 27];
+    private World _world;
+    private TiledMap _tiledMap;
+    private TiledMapRenderer _tiledMapRenderer;
+
+    private OrthographicCamera _camera;
+    private Vector2 _cameraVelocity;
 
     public int WindowWidth { get => _graphics.PreferredBackBufferWidth; }
 
@@ -33,32 +44,39 @@ public class Game : Microsoft.Xna.Framework.Game {
 
     public GameTime GameTime { get; private set; }
 
-    private Player player;
-
     private Game() {
         _graphics = new GraphicsDeviceManager(this);
-        _graphics.PreferredBackBufferWidth = 1920;
-        _graphics.PreferredBackBufferHeight = 1080;
         _graphics.ToggleFullScreen();
         Content.RootDirectory = "Content";
-        objects = new();
         IsMouseVisible = true;
     }
 
+
     protected override void Initialize() {
+        _graphics.PreferredBackBufferWidth = 1920;
+        _graphics.PreferredBackBufferHeight = 1080;
+        _graphics.ApplyChanges();
+
         var playerTexture = Content.Load<Texture2D>("player");
-        player = new(playerTexture, new Vector2(WindowWidth / 2 - playerTexture.Width / 2, 50), 0);
-        AddObject(player);
-        for (var i = 0; i < world.GetLength(0); i++) {
-            for (var j = world.GetLength(1) / 2; j < world.GetLength(1); j++) {
-                world[i,j] = i < (world.GetLength(0) / 2) ? BlockType.Red : BlockType.Blue;
-            }
-        }
         base.Initialize();
+
+        var viewportAdapter = new BoxingViewportAdapter(Window, GraphicsDevice, 1920, 1080);
+        _camera = new(viewportAdapter);
+        _camera.Move(new(0, -7 * 40));
     }
 
     protected override void LoadContent() {
-        _spriteBatch = new SpriteBatch(GraphicsDevice);
+        _spriteBatch = new (GraphicsDevice);
+        _tiledMap = Content.Load<TiledMap>("Map1");
+        _tiledMapRenderer = new(GraphicsDevice, _tiledMap);
+
+        _world = new WorldBuilder()
+            .AddSystem(new PlayerProcessingSystem())
+            .AddSystem(new RenderSystem(GraphicsDevice))
+            .Build();
+        var player = _world.CreateEntity();
+        var playerSprite = Content.Load<Texture2D>("player");
+        player.Attach(new Player(playerSprite, playerSprite.Bounds));
     }
 
     protected override void Update(GameTime gameTime) {
@@ -66,38 +84,30 @@ public class Game : Microsoft.Xna.Framework.Game {
         if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape)) {
             Exit();
         }
-        foreach (GameObject obj in objects) {
-            obj.Update(gameTime);
-        }
+        _tiledMapRenderer.Update(gameTime);
+        updateCamera();
+        _camera.Move(_cameraVelocity);
 
+        _world.Update(gameTime);
         base.Update(gameTime);
+    }
+
+    private bool _movingRight;
+    private void updateCamera() {
+        if (_movingRight && _camera.Position.X + WindowWidth >= _tiledMap.WidthInPixels) {
+            _movingRight = !_movingRight;
+            _cameraVelocity.X = -5;
+        }
+        else if (!_movingRight && _camera.Position.X <= 0) {
+            _movingRight = !_movingRight;
+            _cameraVelocity.X = 5;
+        }
     }
 
     protected override void Draw(GameTime gameTime) {
         GraphicsDevice.Clear(Color.SkyBlue);
-
-        _spriteBatch.Begin();
-        int width = Blocks.GetTextureFrom(BlockType.Red).Width;
-        for (var i = 0; i < world.GetLength(0); i++) {
-            for (var j = 0; j < world.GetLength(1); j++) {
-                Blocks.Draw(_spriteBatch, world[i,j], 
-                    new Vector2(width * i, width * j));
-            }
-        }
-        foreach (GameObject obj in objects) {
-            obj.Draw(_spriteBatch);
-        }
-        _spriteBatch.End();
-
+        _tiledMapRenderer.Draw(_camera.GetViewMatrix());
+        _world.Draw(gameTime);
         base.Draw(gameTime);
     }
-
-    public BlockType GetTile(float x, float y) {
-        int width = Blocks.GetTextureFrom(BlockType.Red).Width;
-        return world[(int) (x / width), (int) (y / width)];
-    }
-
-    public void AddObject(GameObject obj) => objects.Add(obj);
-    
-    public void RemoveObject(GameObject obj) => objects.Remove(obj);
 }
