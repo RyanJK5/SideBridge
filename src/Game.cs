@@ -57,7 +57,6 @@ public class Game : Microsoft.Xna.Framework.Game {
         _graphics.PreferredBackBufferHeight = 1080;
         _graphics.ApplyChanges();
 
-        var playerTexture = Content.Load<Texture2D>("player");
         base.Initialize();
 
         var viewportAdapter = new BoxingViewportAdapter(Window, GraphicsDevice, 1920, 1080);
@@ -74,9 +73,14 @@ public class Game : Microsoft.Xna.Framework.Game {
             .AddSystem(new PlayerProcessingSystem())
             .AddSystem(new RenderSystem(GraphicsDevice))
             .Build();
+
         var player = _world.CreateEntity();
-        var playerSprite = Content.Load<Texture2D>("player");
-        player.Attach(new Player(playerSprite, playerSprite.Bounds));
+        var playerTexture = Content.Load<Texture2D>("player");
+        player.Attach(new Sprite { Texture = playerTexture });
+        player.Attach(new Position { X = WindowWidth / 2 - playerTexture.Width / 2, Y = 100 });
+        player.Attach(new Velocity());
+        player.Attach(new Hitbox { Width = playerTexture.Width, Height = playerTexture.Height });
+        player.Attach(new Input(Keys.A, Keys.D, Keys.LeftShift, Keys.Space));
     }
 
     protected override void Update(GameTime gameTime) {
