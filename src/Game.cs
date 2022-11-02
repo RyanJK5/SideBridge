@@ -1,10 +1,10 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
-using System.Collections.Generic;
 using MonoGame.Extended;
 using MonoGame.Extended.Tiled;
 using MonoGame.Extended.Tiled.Renderers;
+using MonoGame.Extended.Collisions;
 using MonoGame.Extended.ViewportAdapters;
 using MonoGame.Extended.Entities;
 using SideBridge.Systems;
@@ -31,16 +31,17 @@ public class Game : Microsoft.Xna.Framework.Game {
 
     private GraphicsDeviceManager _graphics;
     private SpriteBatch _spriteBatch;
-    private World _world;
-    private TiledMap _tiledMap;
-    private TiledMapRenderer _tiledMapRenderer;
 
-    private OrthographicCamera _camera;
-    private Vector2 _cameraVelocity;
+    private World _world;
+    public CollisionComponent CollisionComponent;
+
+    private RenderSystem _renderSystem;
 
     public int WindowWidth { get => _graphics.PreferredBackBufferWidth; }
-
     public int WindowHeight { get => _graphics.PreferredBackBufferHeight; }
+
+    public float MapWidth { get => _renderSystem.TiledMap.WidthInPixels; }
+    public float MapHeight { get => _renderSystem.TiledMap.HeightInPixels; }
 
     public GameTime GameTime { get; private set; }
 
@@ -58,29 +59,31 @@ public class Game : Microsoft.Xna.Framework.Game {
         _graphics.ApplyChanges();
 
         base.Initialize();
-
-        var viewportAdapter = new BoxingViewportAdapter(Window, GraphicsDevice, 1920, 1080);
-        _camera = new(viewportAdapter);
-        _camera.Move(new(0, -7 * 40));
     }
 
     protected override void LoadContent() {
-        _spriteBatch = new (GraphicsDevice);
-        _tiledMap = Content.Load<TiledMap>("Map1");
-        _tiledMapRenderer = new(GraphicsDevice, _tiledMap);
+        _spriteBatch = new(GraphicsDevice);
 
+        var tiledMap = Content.Load<TiledMap>("TestMap");
+        CollisionComponent = new(new(0, 0, tiledMap.WidthInPixels, tiledMap.HeightInPixels));
+        _renderSystem = new(Window, GraphicsDevice, tiledMap);
         _world = new WorldBuilder()
-            .AddSystem(new PlayerProcessingSystem())
-            .AddSystem(new RenderSystem(GraphicsDevice))
+            .AddSystem(new PlayerSystem())
+            .AddSystem(_renderSystem)
             .Build();
 
         var player = _world.CreateEntity();
         var playerTexture = Content.Load<Texture2D>("player");
+        var playerPosition = new Position { X = MapWidth / 2 - playerTexture.Width / 2, Y = 100 };
+        var playerVelocity = new Velocity();
+        var playerCollider = new PlayerCollider(new(playerPosition.X, playerPosition.Y, playerTexture.Width, playerTexture.Height), playerVelocity);
         player.Attach(new Sprite { Texture = playerTexture });
-        player.Attach(new Position { X = WindowWidth / 2 - playerTexture.Width / 2, Y = 100 });
-        player.Attach(new Velocity());
-        player.Attach(new Hitbox { Width = playerTexture.Width, Height = playerTexture.Height });
+        player.Attach(playerPosition);
+        player.Attach(playerVelocity);
         player.Attach(new Input(Keys.A, Keys.D, Keys.LeftShift, Keys.Space));
+        player.Attach(playerCollider);
+        CollisionComponent.Insert(playerCollider);
+        
     }
 
     protected override void Update(GameTime gameTime) {
@@ -88,29 +91,14 @@ public class Game : Microsoft.Xna.Framework.Game {
         if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape)) {
             Exit();
         }
-        _tiledMapRenderer.Update(gameTime);
-        updateCamera();
-        _camera.Move(_cameraVelocity);
 
         _world.Update(gameTime);
+        CollisionComponent.Update(gameTime);
         base.Update(gameTime);
-    }
-
-    private bool _movingRight;
-    private void updateCamera() {
-        if (_movingRight && _camera.Position.X + WindowWidth >= _tiledMap.WidthInPixels) {
-            _movingRight = !_movingRight;
-            _cameraVelocity.X = -5;
-        }
-        else if (!_movingRight && _camera.Position.X <= 0) {
-            _movingRight = !_movingRight;
-            _cameraVelocity.X = 5;
-        }
     }
 
     protected override void Draw(GameTime gameTime) {
         GraphicsDevice.Clear(Color.SkyBlue);
-        _tiledMapRenderer.Draw(_camera.GetViewMatrix());
         _world.Draw(gameTime);
         base.Draw(gameTime);
     }
