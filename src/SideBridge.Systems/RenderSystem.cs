@@ -13,7 +13,6 @@ namespace SideBridge.Systems;
 
 public class RenderSystem : EntityUpdateSystem, IDrawSystem {
 
-    public readonly TiledMap TiledMap;
     private readonly TiledMapRenderer _tiledMapRenderer;
 
     private readonly SpriteBatch _spriteBatch;
@@ -27,18 +26,10 @@ public class RenderSystem : EntityUpdateSystem, IDrawSystem {
         _spriteBatch = new(graphicsDevice);
         var viewportAdapter = new BoxingViewportAdapter(window, graphicsDevice, 1920, 1080);
         _camera = new(viewportAdapter);
-        _camera.Move(new(0, -7 * 40));
-        TiledMap = tiledMap;
         _tiledMapRenderer = new(graphicsDevice, tiledMap);
-        for (ushort x = 0; x < TiledMap.Width; x++) {
-            for (ushort y = 0; y < TiledMap.Height; y++) {
-                if (!TiledMap.TileLayers[0].GetTile(x, y).IsBlank) {
-                    Game.Main.CollisionComponent.Insert(new StaticCollider(
-                        new(x * TiledMap.TileWidth, y * TiledMap.TileHeight, TiledMap.TileWidth, TiledMap.TileHeight)));
-                }
-            }
-        }
     }
+
+    public Vector2 ScreenToWorld(float x, float y) => _camera.ScreenToWorld(x, y);
 
     public void Draw(GameTime gameTime) {
         _tiledMapRenderer.Draw(_camera.GetViewMatrix());
@@ -62,6 +53,8 @@ public class RenderSystem : EntityUpdateSystem, IDrawSystem {
         _tiledMapRenderer.Update(gameTime);
         updateCamera();
     }
+
+    public void MapUpdated() => _tiledMapRenderer.LoadMap(Game.Main.TiledMap);
 
     private void updateCamera() { }
 }

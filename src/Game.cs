@@ -34,16 +34,30 @@ public class Game : Microsoft.Xna.Framework.Game {
 
     private World _world;
     public CollisionComponent CollisionComponent;
+    public TiledMap TiledMap;
 
     private RenderSystem _renderSystem;
 
     public int WindowWidth { get => _graphics.PreferredBackBufferWidth; }
     public int WindowHeight { get => _graphics.PreferredBackBufferHeight; }
 
-    public float MapWidth { get => _renderSystem.TiledMap.WidthInPixels; }
-    public float MapHeight { get => _renderSystem.TiledMap.HeightInPixels; }
+    public float MapWidth { get => TiledMap.WidthInPixels; }
+    public float MapHeight { get => TiledMap.HeightInPixels; }
 
-    public GameTime GameTime { get; private set; }
+    public TiledMapTile GetTile(float x, float y) =>
+        TiledMap.TileLayers[0].GetTile
+        ((ushort) (x / TiledMap.TileWidth),  (ushort) (y / TiledMap.TileHeight));
+    
+    public void SetTile(float x, float y, BlockType blockType) {
+        var tileX = (ushort) (x / TiledMap.TileWidth);
+        var tileY = (ushort) (y / TiledMap.TileHeight);
+        TiledMap.TileLayers[0].SetTile(tileX, tileY, (uint) blockType);
+        CollisionComponent.Insert
+            (new StaticCollider(new(tileX * TiledMap.TileWidth, tileY * TiledMap.TileHeight, TiledMap.TileWidth, TiledMap.TileHeight)));
+        _renderSystem.MapUpdated();
+    }
+
+    public Vector2 ScreenToWorld(Vector2 position) => _renderSystem.ScreenToWorld(position.X, position.Y);
 
     private Game() {
         _graphics = new GraphicsDeviceManager(this);
@@ -64,17 +78,21 @@ public class Game : Microsoft.Xna.Framework.Game {
     protected override void LoadContent() {
         _spriteBatch = new(GraphicsDevice);
 
-        var tiledMap = Content.Load<TiledMap>("TestMap");
-        CollisionComponent = new(new(0, 0, tiledMap.WidthInPixels, tiledMap.HeightInPixels));
-        _renderSystem = new(Window, GraphicsDevice, tiledMap);
+        TiledMap = Content.Load<TiledMap>("Map1");
+        CollisionComponent = new(new(0, 0, TiledMap.WidthInPixels, TiledMap.HeightInPixels));
+        insertTileHitboxes();
+        
+        _renderSystem = new(Window, GraphicsDevice, TiledMap);
+        TiledMap.TileLayers[0].SetTile(0, 0, (uint) (BlockType.Blue));
         _world = new WorldBuilder()
             .AddSystem(new PlayerSystem())
             .AddSystem(_renderSystem)
+            .AddSystem(new BlockSystem())
             .Build();
 
         var player = _world.CreateEntity();
         var playerTexture = Content.Load<Texture2D>("player");
-        var playerPosition = new Position { X = MapWidth / 2 - playerTexture.Width / 2, Y = 100 };
+        var playerPosition = new Position { X = MapWidth / 2, Y = 100 };
         var playerVelocity = new Velocity();
         var playerCollider = new PlayerCollider(new(playerPosition.X, playerPosition.Y, playerTexture.Width, playerTexture.Height), playerVelocity);
         player.Attach(new Sprite { Texture = playerTexture });
@@ -87,7 +105,6 @@ public class Game : Microsoft.Xna.Framework.Game {
     }
 
     protected override void Update(GameTime gameTime) {
-        GameTime = gameTime;
         if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape)) {
             Exit();
         }
@@ -101,5 +118,17 @@ public class Game : Microsoft.Xna.Framework.Game {
         GraphicsDevice.Clear(Color.SkyBlue);
         _world.Draw(gameTime);
         base.Draw(gameTime);
+    }
+
+    private void insertTileHitboxes() {
+        for (ushort x = 0; x < TiledMap.Width; x++) {
+            for (ushort y = 0; y < TiledMap.Height; y++) {
+                if (!TiledMap.TileLayers[0].GetTile(x, y).IsBlank) {
+                    Game.Main.CollisionComponent.Insert(
+                        new StaticCollider(new(x * TiledMap.TileWidth, y * TiledMap.TileHeight, 
+                        TiledMap.TileWidth, TiledMap.TileHeight)));
+                }
+            }
+        }
     }
 }

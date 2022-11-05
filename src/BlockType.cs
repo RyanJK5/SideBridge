@@ -2,6 +2,7 @@ namespace SideBridge;
 
 public enum BlockType {
     Air,
+    Blue,
     Red,
-    Blue
+    White
 }

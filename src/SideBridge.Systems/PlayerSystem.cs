@@ -55,38 +55,29 @@ public class PlayerSystem : EntityProcessingSystem {
             var velocity = _velocityMapper.Get(entityID);
             var position = _positionMapper.Get(entityID);
             var collider = _colliderMapper.Get(entityID);
+            var colliderBounds = collider.RectBounds;
+            var otherBounds = (RectangleF) args.Other.Bounds;
+            var intersection = collider.RectBounds.Intersection((RectangleF) args.Other.Bounds);
 
-            position.X -= args.PenetrationVector.X;
-            position.Y -= args.PenetrationVector.Y;
-            if (args.PenetrationVector.X > args.PenetrationVector.Y) {
+            var adj = colliderBounds.Width / otherBounds.Height;
+            var adj2 = otherBounds.Height / colliderBounds.Width;
+            if (intersection.Height * adj2 > intersection.Width) {
+                if (colliderBounds.X < otherBounds.Position.X) {
+                    position.X -= intersection.Width;
+                }
+                else {
+                    position.X += intersection.Width;
+                }
                 velocity.DirX = 0;
             }
-            else if (args.PenetrationVector.Y > args.PenetrationVector.X) {
+            else {
+                if (colliderBounds.Y < otherBounds.Y) { 
+                    position.Y -= intersection.Height;
+                }
+                else {
+                    position.Y += intersection.Height;
+                }
                 velocity.DirY = 0;
-            }
-            else if (args.PenetrationVector == Vector2.Zero) {
-                var intersection = collider.RectBounds.Intersection((RectangleF) args.Other.Bounds);
-                Console.WriteLine(intersection);
-                    // if (collider.RectBounds.X < args.Other.Bounds.Position.X) {
-                    //     position.X -= intersection.Width;
-                    // }
-                    // else {
-                    //     position.X += intersection.Width;
-                    // }
-                    if (collider.RectBounds.Y < args.Other.Bounds.Position.Y) {
-                        position.Y -= intersection.Height;
-                    }
-                    else {
-                        position.Y += intersection.Height;
-                    }
-                // else {
-                //     if (lastVector.Y > 0) {
-                //         position.Y -= intersection.Height;
-                //     }
-                //     else {
-                //         position.Y += intersection.Height;
-                //     }
-                // }
             }
             collider.RectBounds.X = position.X;
             collider.RectBounds.Y = position.Y;
@@ -94,43 +85,48 @@ public class PlayerSystem : EntityProcessingSystem {
     }
 
     private void move(GameTime gameTime, int entityID) {
-        float speed = HorizontalAcceleration;
-
+        float speed = HorizontalAcceleration; // 1f
         var hitbox = (RectangleF) _colliderMapper.Get(entityID).Bounds;
         var keyInputs = _inputMapper.Get(entityID);
         var velocity = _velocityMapper.Get(entityID);
         var position = _positionMapper.Get(entityID);
-        updateVelocity(velocity, 0, VerticalAcceleration);
-        if (Keyboard.GetState().IsKeyDown(keyInputs[PlayerAction.Jump])) {
-            velocity.DirY = -12.5f;
+
+        if  (hitbox.Bottom < Game.Main.MapHeight && hitbox.Bottom > 0 && (
+            !Game.Main.GetTile(position.X, hitbox.Bottom).IsBlank ||
+            !Game.Main.GetTile(hitbox.Right - 1, hitbox.Bottom).IsBlank
+            )) {
+            if (Keyboard.GetState().IsKeyDown(keyInputs[PlayerAction.Jump])) {
+                velocity.DirY = -11f;
+            }
         }
+        else {
+            updateVelocity(velocity, 0, VerticalAcceleration);
+        }
+
         if (Keyboard.GetState().IsKeyDown(keyInputs[PlayerAction.Sprint])) {
             speed *= 2;
         }
-        if (Keyboard.GetState().IsKeyDown(keyInputs[PlayerAction.Left])) {
-            if (!Keyboard.GetState().IsKeyDown(keyInputs[PlayerAction.Right])) {
-                updateVelocity(velocity, -speed, 0);
-                _keyListener.KeyReleased += (sender, args) => {
-                    if (args.Key == keyInputs[(int) PlayerAction.Left]) {
-                        updateVelocity(velocity, speed, 0, 0, 0);
-                    }
-                };
-            }
-            else {
-                updateVelocity(velocity, speed, 0, 0, 0);
-            }
+
+        bool leftDown = Keyboard.GetState().IsKeyDown(keyInputs[PlayerAction.Left]);
+        bool rightDown = Keyboard.GetState().IsKeyDown(keyInputs[PlayerAction.Right]);
+        if (leftDown && !(rightDown && velocity.DirX <= 0)) {
+            updateVelocity(velocity, -speed, 0);
         }
-        if (Keyboard.GetState().IsKeyDown(keyInputs[PlayerAction.Right])) {
-            if (!Keyboard.GetState().IsKeyDown(keyInputs[PlayerAction.Left])) {
-                updateVelocity(velocity, speed, 0);
-                _keyListener.KeyReleased += (sender, args) => {
-                    if (args.Key == keyInputs[PlayerAction.Right]) {
-                        updateVelocity(velocity, -speed, 0, 0, 0);
-                    }
-                };
+        else if (!leftDown && velocity.DirX <= 0) {
+            updateVelocity(velocity, speed, 0, 0, MaximumVerticalVelocity);
+        }
+        if (rightDown && !(leftDown && velocity.DirX >= 0)) {
+            updateVelocity(velocity, speed, 0);
+        }
+        else if (!rightDown && velocity.DirX >= 0) {
+            updateVelocity(velocity, -speed, 0, 0, MaximumVerticalVelocity);
+        }
+        if (!leftDown && !rightDown && velocity.DirX != 0) {
+            if (velocity.DirX < 0) {
+                updateVelocity(velocity, speed, 0, 0, MaximumVerticalVelocity);
             }
             else {
-                updateVelocity(velocity, -speed, 0, 0, 0);
+                updateVelocity(velocity, -speed, 0, 0, MaximumVerticalVelocity);
             }
         }
         position.X += velocity.DirX;
@@ -147,17 +143,12 @@ public class PlayerSystem : EntityProcessingSystem {
         else if (position.X > Game.Main.MapWidth - hitbox.Width) {
             position.X = Game.Main.MapWidth - hitbox.Width;
         }
-        if (position.Y < 0) {
-            position.Y = 0;
-        }
-        else if (position.Y > Game.Main.MapHeight - hitbox.Height) {
-            position.Y = Game.Main.MapHeight - hitbox.Height;
+        if (position.Y > Game.Main.MapHeight) {
+            position.Y = -hitbox.Height * 4;
         }
     }
 
-    private (float xDif, float yDif) updateVelocity(Velocity velocity, float x, float y, float xLimit, float yLimit) {
-        var origVec = new Velocity { DirX = velocity.DirX, DirY = velocity.DirY };
-        
+    private void updateVelocity(Velocity velocity, float x, float y, float xLimit, float yLimit) {
         if ((x >= 0 && velocity.DirX + x < xLimit) || (x < 0 && velocity.DirX + x > -xLimit)) {
             velocity.DirX += x;
         }
@@ -181,10 +172,8 @@ public class PlayerSystem : EntityProcessingSystem {
                 velocity.DirY = -yLimit;
             }
         }
-
-        return (Math.Abs(velocity.DirX - origVec.DirX), Math.Abs(velocity.DirY - origVec.DirY));
     }
 
-    private (float xDif, float yDif) updateVelocity(Velocity velocity, float x, float y) => 
+    private void updateVelocity(Velocity velocity, float x, float y) => 
         updateVelocity(velocity, x, y, MaximumHorizontalVelocity, MaximumVerticalVelocity);
 }
