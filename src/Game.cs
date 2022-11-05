@@ -51,9 +51,16 @@ public class Game : Microsoft.Xna.Framework.Game {
     public void SetTile(float x, float y, BlockType blockType) {
         var tileX = (ushort) (x / TiledMap.TileWidth);
         var tileY = (ushort) (y / TiledMap.TileHeight);
+        var blockInt = (uint) blockType;
         TiledMap.TileLayers[0].SetTile(tileX, tileY, (uint) blockType);
-        CollisionComponent.Insert
-            (new StaticCollider(new(tileX * TiledMap.TileWidth, tileY * TiledMap.TileHeight, TiledMap.TileWidth, TiledMap.TileHeight)));
+        if (blockInt == 0) {
+            CollisionComponent.Remove(
+                new StaticCollider(new(tileX * TiledMap.TileWidth, tileY * TiledMap.TileHeight, TiledMap.TileWidth, TiledMap.TileHeight)));
+        }
+        else {
+            CollisionComponent.Insert
+                (new StaticCollider(new(tileX * TiledMap.TileWidth, tileY * TiledMap.TileHeight, TiledMap.TileWidth, TiledMap.TileHeight)));
+        }
         _renderSystem.MapUpdated();
     }
 
@@ -83,7 +90,6 @@ public class Game : Microsoft.Xna.Framework.Game {
         insertTileHitboxes();
         
         _renderSystem = new(Window, GraphicsDevice, TiledMap);
-        TiledMap.TileLayers[0].SetTile(0, 0, (uint) (BlockType.Blue));
         _world = new WorldBuilder()
             .AddSystem(new PlayerSystem())
             .AddSystem(_renderSystem)

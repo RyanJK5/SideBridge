@@ -3,7 +3,7 @@
         "height": 4300,
         "width": 2
     },
-    "activeFile": "Tileset.tsx",
+    "activeFile": "Map1.tmx",
     "expandedProjectPaths": [
         "."
     ],
@@ -12,11 +12,11 @@
             "scaleInDock": 1
         },
         "Map1.tmx": {
-            "scale": 0.44073770491803277,
+            "scale": 0.75,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 1216.14283057467,
-                "y": 538.8692579505299
+                "x": 1008,
+                "y": 440
             }
         },
         "TestMap.tmx": {
@@ -46,9 +46,9 @@
     ],
     "project": "SideBridgeMaps.tiled-project",
     "recentFiles": [
+        "Tileset.tsx",
         "TestMap.tmx",
-        "Map1.tmx",
-        "Tileset.tsx"
+        "Map1.tmx"
     ],
     "tileset.lastUsedFilter": "Tiled tileset files (*.tsx *.xml)"
 }
