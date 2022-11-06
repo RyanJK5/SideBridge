@@ -1,9 +1,8 @@
 using MonoGame.Extended;
-using MonoGame.Extended.Graphics;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Graphics;
-using MonoGame.Extended.Tiled;
+using MonoGame.Extended.Input;
 using MonoGame.Extended.Collisions;
 
 namespace SideBridge;
@@ -68,11 +67,11 @@ public class Player : Entity {
         var tileY = (int) (mousePos.Y / TileSize) * TileSize;
         bool inRange = Vector2.Distance(new(tileX, tileY), Bounds.Position) < TileReach * TileSize && 
             tileY / TileSize >= HeightLimit && tileX / TileSize > IslandWidths - 1 && tileX / TileSize < Game.MapWidth - IslandWidths;
-        if (Mouse.GetState().LeftButton == ButtonState.Pressed && inRange && Game.GetTile(mousePos.X, mousePos.Y) == BlockType.Air) {
+        if (Mouse.GetState().LeftButton == ButtonState.Pressed && inRange && Game.GetTile(mousePos.X, mousePos.Y).Type == BlockType.Air) {
             placeTile(tileX, tileY, mousePos);
         }
         else if (Mouse.GetState().RightButton == ButtonState.Pressed && inRange) {
-            damageTile(tileX, tileY);
+            damageTile(Game.GetTile(mousePos.X, mousePos.Y));
         }
     }
 
@@ -91,26 +90,21 @@ public class Player : Entity {
                 mousePos.Y + vec.Y > Game.MapHeight || mousePos.Y + vec.Y < 0) {
                 continue;
             }
-            if (Game.GetTile(mousePos.X + vec.X, mousePos.Y + vec.Y) != BlockType.Air) {
+            if (Game.GetTile(mousePos.X + vec.X, mousePos.Y + vec.Y).Type != BlockType.Air) {
                 Game.SetTile(tileY / TileSize <= HeightLimit ? BlockType.DarkBlue : BlockType.Blue, mousePos.X, mousePos.Y);
                 break;
             }
         }
     }
 
-    private void damageTile(int tileX, int tileY) {
-    //     if (!Blocks.Breakable((BlockType) tile.GlobalIdentifier)) {
-    //         return;
-    //     }
-    //     if (_tileDamage.ContainsKey(tile)) {
-    //         _tileDamage[tile]--;
-    //     }
-    //     else {
-    //         _tileDamage.Add(tile, TileDurability - 1);
-    //     }
-    //     if (_tileDamage[tile] <= 0) {
-    //         Game.Main.SetTile(tile.X * TileSize, tile.Y * TileSize, BlockType.Air);
-    //     }
+    private void damageTile(Tile tile) {
+        if (!Blocks.Breakable(tile.Type)) {
+            return;
+        }
+        tile.Durability--;
+        if (tile.Durability <= 0) {
+            Game.SetTile(BlockType.Air, tile.Bounds.X, tile.Bounds.Y);
+        }
     }
 
     private void setHorizontalVelocity() {
@@ -145,8 +139,8 @@ public class Player : Entity {
 
     private void setVerticalVelocity() {
         if  (Bounds.Bottom < Game.MapHeight && Bounds.Bottom > 0 && (
-            Game.GetTile(Bounds.X, Bounds.Bottom) != BlockType.Air ||
-            Game.GetTile(Bounds.Right - 1, Bounds.Bottom) != BlockType.Air
+            Game.GetTile(Bounds.X, Bounds.Bottom).Type != BlockType.Air ||
+            Game.GetTile(Bounds.Right - 1, Bounds.Bottom).Type != BlockType.Air
             )) {
             if (Keyboard.GetState().IsKeyDown(_keyInputs[(int) PlayerAction.Jump])) {
                 Velocity.Y = -11f;

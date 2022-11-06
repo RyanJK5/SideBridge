@@ -31,23 +31,26 @@ public class Game : Microsoft.Xna.Framework.Game {
     public static float MapWidth { get => main._tiledWorld.WidthInPixels; }
     public static float MapHeight { get => main._tiledWorld.HeightInPixels; }
 
-    public static BlockType GetTile(float x, float y) {
-        if (x > MapWidth || x < 0 || y > MapHeight || y < 0) {
-            return BlockType.Air;
-        }
+    public static Tile GetTile(float x, float y) {
         TiledWorld tiledWorld = main._tiledWorld;
         int tileSize = tiledWorld.TileSize;
+        if (x > MapWidth || x < 0 || y > MapHeight || y < 0) {
+            return new Tile(BlockType.Air, new((int) (x / tileSize) * tileSize, (int) (y / tileSize) * tileSize, tileSize, tileSize));
+        }
         return tiledWorld[(int) (x / tileSize), (int) (y / tileSize)];
     }
 
     public static void SetTile(BlockType type, float x, float y) {
         TiledWorld tiledWorld = main._tiledWorld;
         int tileSize = tiledWorld.TileSize;
-        tiledWorld[(int) (x / tileSize), (int) (y / tileSize)] = type;
+        tiledWorld.SetTile(type, (int) (x / tileSize), (int) (y / tileSize));
     }
 
-    public static void AddTile(Tile tile) =>
+    public static void AddTileCollider(Tile tile) =>
         main._collisionComponent.Insert(tile);    
+
+    public static void RemoveTileCollider(Tile tile) =>
+        main._collisionComponent.Remove(tile);
 
     public static Vector2 ScreenToWorld(Vector2 position) => main._camera.ScreenToWorld(position.X, position.Y);
     public static Vector2 WorldToScreen(Vector2 position) => main._camera.WorldToScreen(position.X, position.Y);
@@ -90,9 +93,6 @@ public class Game : Microsoft.Xna.Framework.Game {
     }
 
     protected override void Update(GameTime gameTime) {
-        if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape)) {
-            Exit();
-        }
         base.Update(gameTime);
         _tiledWorld.Update(gameTime);
         _entityWorld.Update(gameTime);

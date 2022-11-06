@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
@@ -10,7 +11,7 @@ namespace SideBridge;
 public class TiledWorld : SimpleDrawableGameComponent {
     private readonly TileSet _tileSet;
     private readonly SpriteBatch _spriteBatch;
-    
+
     public readonly int Width;
     public readonly int Height;
     public int WidthInPixels { get => Width * _tileSet.TileSize; }
@@ -28,38 +29,64 @@ public class TiledWorld : SimpleDrawableGameComponent {
     }
     
     public override void Draw(GameTime gameTime) {
-        _spriteBatch.Begin();
+        _spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend);
 
         int tileSize = _tileSet.TileSize;
         foreach (var tile in _tileGrid) {
             if (tile.Type != BlockType.Air) {
                 var blockIndex = (int) tile.Type - 1;
-                if (tile.Type == BlockType.DarkBlue) {
-                }
                 _spriteBatch.Draw(
                     _tileSet.TileImage,
                     tile.Bounds.Position,
                     new Rectangle((blockIndex + _tileSet.Width) % _tileSet.Width * tileSize, 
                     blockIndex / _tileSet.Width * tileSize, tileSize, tileSize), 
                     Color.White);
+
+                if (tile.Durability < Tile.MaxDurability) {
+                    var rectTop = tile.Bounds.Bottom - (float) (tile.Durability + 1) / Tile.MaxDurability * TileSize;
+                    _spriteBatch.FillRectangle(
+                        tile.Bounds.X, rectTop, tileSize, tile.Bounds.Bottom - rectTop,
+                        Color.White * 0.5f);
+                }
             }
         }
 
         _spriteBatch.End();
     }
 
-    public override void Update(GameTime gameTime) { }
+    public override void Update(GameTime gameTime) {
+        Point2 mousePos = Game.ScreenToWorld(Mouse.GetState().Position.ToVector2());
+        if (Mouse.GetState().RightButton == ButtonState.Pressed) {
+            foreach (var tile in _tileGrid) {
+                if (tile.Type != BlockType.Air && !tile.Bounds.Contains(mousePos) && tile.Durability < Tile.MaxDurability) {
+                    tile.Durability = Tile.MaxDurability;
+                }
+            }
+        }
+        else {
+            foreach (var tile in _tileGrid) {
+                tile.Durability = Tile.MaxDurability;
+            }
+        }
+    }
 
-    public BlockType this[int x, int y] {
-        get {
-            return _tileGrid[x + Width * y].Type;
+    public Tile this[int x, int y] {
+        get => _tileGrid[x + Width * y];
+    }
+
+    public void SetTile(BlockType type, int x, int y) {
+        int tileSize = _tileSet.TileSize;
+        var tile = new Tile(type, new(x * tileSize, y * tileSize, tileSize, tileSize));
+        var oldTile = _tileGrid[x + Width * y]; 
+        if (oldTile.Type == BlockType.Air) {
+            if (type != BlockType.Air) {
+                Game.AddTileCollider(tile);
+            }
         }
-        set {
-            int tileSize = _tileSet.TileSize;
-            var tile = new Tile(value, new(x * tileSize, y * tileSize, tileSize, tileSize));
-            _tileGrid[x + Width * y] = tile;
-            Game.AddTile(tile);
+        else if (type == BlockType.Air) {
+            Game.RemoveTileCollider(oldTile);
         }
+        _tileGrid[x + Width * y] = tile;
     }
 
     public void LoadMap(ContentManager content, WorldType type) {
