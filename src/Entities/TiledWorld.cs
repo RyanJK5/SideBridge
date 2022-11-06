@@ -29,15 +29,16 @@ public class TiledWorld : SimpleDrawableGameComponent {
     }
     
     public override void Draw(GameTime gameTime) {
-        _spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend);
+        _spriteBatch.Begin(transformMatrix: Game.GetViewMatrix());
 
         int tileSize = _tileSet.TileSize;
         foreach (var tile in _tileGrid) {
             if (tile.Type != BlockType.Air) {
                 var blockIndex = (int) tile.Type - 1;
+                var tilePos = tile.Bounds.Position;
                 _spriteBatch.Draw(
                     _tileSet.TileImage,
-                    tile.Bounds.Position,
+                    tilePos,
                     new Rectangle((blockIndex + _tileSet.Width) % _tileSet.Width * tileSize, 
                     blockIndex / _tileSet.Width * tileSize, tileSize, tileSize), 
                     Color.White);
@@ -45,7 +46,7 @@ public class TiledWorld : SimpleDrawableGameComponent {
                 if (tile.Durability < Tile.MaxDurability) {
                     var rectTop = tile.Bounds.Bottom - (float) (tile.Durability + 1) / Tile.MaxDurability * TileSize;
                     _spriteBatch.FillRectangle(
-                        tile.Bounds.X, rectTop, tileSize, tile.Bounds.Bottom - rectTop,
+                        tilePos.X, rectTop, tileSize, tilePos.Y + tile.Bounds.Height - rectTop,
                         Color.White * 0.5f);
                 }
             }

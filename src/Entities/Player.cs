@@ -2,7 +2,6 @@ using MonoGame.Extended;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Graphics;
-using MonoGame.Extended.Input;
 using MonoGame.Extended.Collisions;
 
 namespace SideBridge;

@@ -22,7 +22,7 @@ public class EntityWorld : SimpleDrawableGameComponent {
     }
 
     public override void Draw(GameTime gameTime) {
-        _spriteBatch.Begin();
+        _spriteBatch.Begin(transformMatrix: Game.GetViewMatrix());
         foreach (Entity entity in _entities) {
             entity.Draw(_spriteBatch);
         }

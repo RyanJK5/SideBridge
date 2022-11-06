@@ -1,7 +1,4 @@
-using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using MonoGame.Extended.Collections;
-using MonoGame.Extended;
 
 namespace SideBridge;
 

@@ -23,7 +23,7 @@ public abstract class Entity : ICollisionActor {
     public abstract void Update(GameTime gameTime);
 
     public virtual void Draw(SpriteBatch spriteBatch) =>
-        spriteBatch.Draw(Texture, Game.WorldToScreen(Bounds.Position), Color.White);
+        spriteBatch.Draw(Texture, Bounds.Position, Color.White);
 
     IShapeF ICollisionActor.Bounds => Bounds;
 }

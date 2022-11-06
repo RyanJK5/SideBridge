@@ -1,7 +1,8 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
 using MonoGame.Extended;
+using MonoGame.Extended.Input;
+using MonoGame.Extended.Input.InputListeners;
 using MonoGame.Extended.Collisions;
 using MonoGame.Extended.ViewportAdapters;
 
@@ -20,10 +21,14 @@ public class Game : Microsoft.Xna.Framework.Game {
     private GraphicsDeviceManager _graphics;
     private SpriteBatch _spriteBatch;
     private OrthographicCamera _camera;
+    private Vector2 _cameraVelocity;
 
     private CollisionComponent _collisionComponent;
     private TiledWorld _tiledWorld;
     private EntityWorld _entityWorld;
+
+    private Player _player;
+    private Hotbar _hotbar;
 
     public static int WindowWidth { get => main._graphics.PreferredBackBufferWidth; }
     public static int WindowHeight { get => main._graphics.PreferredBackBufferHeight; }
@@ -55,6 +60,8 @@ public class Game : Microsoft.Xna.Framework.Game {
     public static Vector2 ScreenToWorld(Vector2 position) => main._camera.ScreenToWorld(position.X, position.Y);
     public static Vector2 WorldToScreen(Vector2 position) => main._camera.WorldToScreen(position.X, position.Y);
 
+    public static Matrix GetViewMatrix() => main._camera.GetViewMatrix();
+
     private Game() {
         _graphics = new GraphicsDeviceManager(this);
         _graphics.ToggleFullScreen();
@@ -78,6 +85,8 @@ public class Game : Microsoft.Xna.Framework.Game {
     protected override void LoadContent() {
         _spriteBatch = new(GraphicsDevice);
 
+        _hotbar = new(Content.Load<Texture2D>("hotbar"), GraphicsDevice);
+        Components.Add(new InputListenerComponent(this, _hotbar.CreateInputListeners()));
 
         var tileSet = new TileSet(Content.Load<Texture2D>("blocks"), 3, 2);
         _tiledWorld = new TiledWorld(GraphicsDevice, tileSet, 61, 27);
@@ -87,22 +96,68 @@ public class Game : Microsoft.Xna.Framework.Game {
         _tiledWorld.InsertTiles(_collisionComponent);
         
         var playerTexture = Content.Load<Texture2D>("player");
-        var player = new Player(playerTexture, new(WindowWidth / 2 - playerTexture.Width / 2, 100, playerTexture.Width, playerTexture.Height));
-        _entityWorld.Add(player);
-        _collisionComponent.Insert(player);
+        _player = new Player(playerTexture, new(WindowWidth / 2 - playerTexture.Width / 2, 100, playerTexture.Width, playerTexture.Height));
+        _entityWorld.Add(_player);
+        _collisionComponent.Insert(_player);
+
+        _camera.LookAt(new(MapWidth / 2, MapHeight / 2));
     }
 
     protected override void Update(GameTime gameTime) {
+        updateCamera();
         base.Update(gameTime);
         _tiledWorld.Update(gameTime);
         _entityWorld.Update(gameTime);
         _collisionComponent.Update(gameTime);
     }
 
+    private void updateCamera() {
+        const float Acceleration = 0.2f;
+        const float MaxVelocity = 7.5f;
+        float sideBounds = 500 / _camera.Zoom;
+
+        var camRight = _camera.Center.X + WindowWidth / _camera.Zoom / 2;
+        var camLeft = _camera.Center.X - WindowWidth / _camera.Zoom / 2;
+        
+        if (camRight > MapWidth + sideBounds / 2) {
+            _camera.Move(new(MapWidth + sideBounds / 2 - camRight, 0));
+        }
+        else if (camLeft < -sideBounds / 2) {
+            _camera.Move(new(-camLeft - sideBounds / 2, 0));
+        }
+        _camera.Move(_cameraVelocity);
+
+        if (camRight - _player.Bounds.X <= sideBounds) {
+            _cameraVelocity.X += Acceleration;
+        }
+        else if (_player.Bounds.X - camLeft <= sideBounds) {
+            _cameraVelocity.X -= Acceleration;
+        }
+        else if (_cameraVelocity.X > 0) {
+            _cameraVelocity.X -= Acceleration;
+            if (_cameraVelocity.X < 0) {
+                _cameraVelocity.X = 0;
+            }
+        }
+        else if (_cameraVelocity.X < 0) {
+            _cameraVelocity.X += Acceleration;
+            if (_cameraVelocity.X > 0) {
+                _cameraVelocity.X = 0;
+            }
+        }
+        if (_cameraVelocity.X > MaxVelocity) {
+            _cameraVelocity.X = MaxVelocity;
+        }
+        else if (_cameraVelocity.X < -MaxVelocity) {
+            _cameraVelocity.X = -MaxVelocity;
+        }
+    }
+
     protected override void Draw(GameTime gameTime) {
         GraphicsDevice.Clear(Color.SkyBlue);
         _tiledWorld.Draw(gameTime);
         _entityWorld.Draw(gameTime);
+        _hotbar.Draw(gameTime);
         base.Draw(gameTime);
     }
 }
