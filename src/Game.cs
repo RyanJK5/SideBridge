@@ -30,6 +30,8 @@ public class Game : Microsoft.Xna.Framework.Game {
     private Player _player;
     private Hotbar _hotbar;
 
+    public static Hotbar Hotbar { get => main._hotbar; }
+
     public static int WindowWidth { get => main._graphics.PreferredBackBufferWidth; }
     public static int WindowHeight { get => main._graphics.PreferredBackBufferHeight; }
 
@@ -51,11 +53,21 @@ public class Game : Microsoft.Xna.Framework.Game {
         tiledWorld.SetTile(type, (int) (x / tileSize), (int) (y / tileSize));
     }
 
-    public static void AddTileCollider(Tile tile) =>
-        main._collisionComponent.Insert(tile);    
+    public static void AddCollider(ICollisionActor entity) =>
+        main._collisionComponent.Insert(entity);    
 
-    public static void RemoveTileCollider(Tile tile) =>
-        main._collisionComponent.Remove(tile);
+    public static void RemoveCollider(ICollisionActor entity) =>
+        main._collisionComponent.Remove(entity);
+    
+    public static void AddEntity(Entity entity) {
+        main._entityWorld.Add(entity);
+        main._collisionComponent.Insert(entity);
+    }
+
+    public static void RemoveEntity(Entity entity) {
+        main._entityWorld.Remove(entity);
+        main._collisionComponent.Remove(entity);
+    }
 
     public static Vector2 ScreenToWorld(Vector2 position) => main._camera.ScreenToWorld(position.X, position.Y);
     public static Vector2 WorldToScreen(Vector2 position) => main._camera.WorldToScreen(position.X, position.Y);
@@ -95,6 +107,8 @@ public class Game : Microsoft.Xna.Framework.Game {
         _collisionComponent = new(new(0, 0, MapWidth, MapHeight));
         _tiledWorld.InsertTiles(_collisionComponent);
         
+        Arrow.ArrowTexture = Content.Load<Texture2D>("arrow");
+
         var playerTexture = Content.Load<Texture2D>("player");
         _player = new Player(playerTexture, new(WindowWidth / 2 - playerTexture.Width / 2, 100, playerTexture.Width, playerTexture.Height));
         _entityWorld.Add(_player);
@@ -119,11 +133,11 @@ public class Game : Microsoft.Xna.Framework.Game {
         var camRight = _camera.Center.X + WindowWidth / _camera.Zoom / 2;
         var camLeft = _camera.Center.X - WindowWidth / _camera.Zoom / 2;
         
-        if (camRight > MapWidth + sideBounds / 2) {
-            _camera.Move(new(MapWidth + sideBounds / 2 - camRight, 0));
+        if (camRight > MapWidth) {
+            _camera.Move(new(MapWidth - camRight, 0));
         }
-        else if (camLeft < -sideBounds / 2) {
-            _camera.Move(new(-camLeft - sideBounds / 2, 0));
+        else if (camLeft < 0) {
+            _camera.Move(new(-camLeft, 0));
         }
         _camera.Move(_cameraVelocity);
 

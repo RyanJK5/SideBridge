@@ -81,11 +81,11 @@ public class TiledWorld : SimpleDrawableGameComponent {
         var oldTile = _tileGrid[x + Width * y]; 
         if (oldTile.Type == BlockType.Air) {
             if (type != BlockType.Air) {
-                Game.AddTileCollider(tile);
+                Game.AddCollider(tile);
             }
         }
         else if (type == BlockType.Air) {
-            Game.RemoveTileCollider(oldTile);
+            Game.RemoveCollider(oldTile);
         }
         _tileGrid[x + Width * y] = tile;
     }

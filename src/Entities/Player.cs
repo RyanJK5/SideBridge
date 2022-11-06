@@ -24,14 +24,6 @@ public class Player : Entity {
     public Player(Texture2D texture, RectangleF bounds) : base(texture, bounds) =>
         _keyInputs = new Keys[] { Keys.A, Keys.D, Keys.LeftShift, Keys.Space };
 
-    public override void Update(GameTime gameTime) {
-        setVerticalVelocity();
-        setHorizontalVelocity();
-        Bounds.Position += Velocity;
-        resetPositions();
-        tryBlockPlacement();
-    }
-
     public override void OnCollision(CollisionEventArgs args) {
         if (args.Other is Tile other) {
             var otherBounds = other.Bounds;
@@ -57,6 +49,62 @@ public class Player : Entity {
                 }
                 Velocity.Y = 0;
             }
+        }
+    }
+
+    public override void Update(GameTime gameTime) {
+        setVerticalVelocity();
+        setHorizontalVelocity();
+        Bounds.Position += Velocity;
+        resetPositions();
+        
+        switch (Game.Hotbar.ActiveSlot) {
+            case 1:
+                tryShootBow(gameTime);
+                break;
+            case 2:
+                tryBlockPlacement();
+                break;
+            
+        }
+    }
+
+    private bool _mouseDown;
+    private float _mouseCharge = 1;
+    private float _timeSinceBowShot = 0;
+    private const float MaxBowCharge = 45f;
+    private const float ArrowCooldown = 3f;
+    private void tryShootBow(GameTime gameTime) {
+        if (_timeSinceBowShot < ArrowCooldown) {
+            _timeSinceBowShot += gameTime.GetElapsedSeconds();
+            return;
+        }
+        var mouseState = Mouse.GetState();
+        if (mouseState.LeftButton == ButtonState.Pressed) {
+            _mouseDown = true;
+            _mouseCharge += 0.5f;
+            if (_mouseCharge > MaxBowCharge) {
+                _mouseCharge = MaxBowCharge;
+            }
+        }
+        if (_mouseDown && mouseState.LeftButton == ButtonState.Released) {
+            var arrowTexture = Arrow.ArrowTexture;
+            Vector2 spawnPos = Bounds.Center - new Vector2(arrowTexture.Width / 2, arrowTexture.Height / 2);
+            var mousePos = Game.ScreenToWorld(mouseState.Position.ToVector2());
+            var arrow = new Arrow(new(spawnPos.X, spawnPos.Y, 
+                arrowTexture.Height, arrowTexture.Width));
+            var vec = new Vector2(mousePos.X, mousePos.Y) - spawnPos;
+            
+            vec.Normalize();
+            vec.X *= _mouseCharge;
+            vec.Y *= _mouseCharge;
+            
+            arrow.Velocity = vec;
+            Game.AddEntity(arrow);
+
+            _mouseDown = false;
+            _mouseCharge = 1;
+            _timeSinceBowShot = 0;
         }
     }
 
