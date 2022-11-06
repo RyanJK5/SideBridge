@@ -11,7 +11,7 @@ public enum BlockType {
 
 public static class Blocks {
 
-    public static bool Breakable(BlockType type) {
-        return type != BlockType.White;
-    }
+    public static bool Breakable(BlockType type) => type != BlockType.White;
+
+    public static bool Solid(BlockType type) => type != BlockType.Air;
 }

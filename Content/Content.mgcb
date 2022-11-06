@@ -14,10 +14,22 @@
 
 #---------------------------------- Content ---------------------------------#
 
-#begin Map1.tmx
+#begin blocks.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:blocks.png
+
+#begin map1.tmx
 /importer:TiledMapImporter
 /processor:TiledMapProcessor
-/build:Map1.tmx
+/build:map1.tmx
 
 #begin player.png
 /importer:TextureImporter
@@ -30,14 +42,4 @@
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
 /build:player.png
-
-#begin TestMap.tmx
-/importer:TiledMapImporter
-/processor:TiledMapProcessor
-/build:TestMap.tmx
-
-#begin Tileset.tsx
-/importer:TiledMapTilesetImporter
-/processor:TiledMapTilesetProcessor
-/build:Tileset.tsx
 

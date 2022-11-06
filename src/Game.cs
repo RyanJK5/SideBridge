@@ -2,73 +2,63 @@
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using MonoGame.Extended;
-using MonoGame.Extended.Tiled;
-using MonoGame.Extended.Tiled.Renderers;
 using MonoGame.Extended.Collisions;
 using MonoGame.Extended.ViewportAdapters;
-using MonoGame.Extended.Entities;
-using SideBridge.Systems;
-using SideBridge.Components;
 
 namespace SideBridge;
 
 public class Game : Microsoft.Xna.Framework.Game {
 
-    private static Game mainGame;
+    private static Game main;
 
-    public static Game Main { 
-        get {
-            if (mainGame == null) {
-                mainGame = new Game();
-            }
-            return mainGame;
-        }
-
-        private set {
-            mainGame = value;
-        }
+    private static void Main() {
+        main = new();
+        using var game = main;
+        main.Run();
     }
 
     private GraphicsDeviceManager _graphics;
     private SpriteBatch _spriteBatch;
+    private OrthographicCamera _camera;
 
-    private World _world;
-    public CollisionComponent CollisionComponent;
-    public TiledMap TiledMap;
+    private CollisionComponent _collisionComponent;
+    private TiledWorld _tiledWorld;
+    private EntityWorld _entityWorld;
 
-    private RenderSystem _renderSystem;
+    public static int WindowWidth { get => main._graphics.PreferredBackBufferWidth; }
+    public static int WindowHeight { get => main._graphics.PreferredBackBufferHeight; }
 
-    public int WindowWidth { get => _graphics.PreferredBackBufferWidth; }
-    public int WindowHeight { get => _graphics.PreferredBackBufferHeight; }
+    public static float MapWidth { get => main._tiledWorld.WidthInPixels; }
+    public static float MapHeight { get => main._tiledWorld.HeightInPixels; }
 
-    public float MapWidth { get => TiledMap.WidthInPixels; }
-    public float MapHeight { get => TiledMap.HeightInPixels; }
-
-    public TiledMapTile GetTile(float x, float y) =>
-        TiledMap.TileLayers[0].GetTile
-        ((ushort) (x / TiledMap.TileWidth),  (ushort) (y / TiledMap.TileHeight));
-    
-    public void SetTile(float x, float y, BlockType blockType) {
-        var tileX = (ushort) (x / TiledMap.TileWidth);
-        var tileY = (ushort) (y / TiledMap.TileHeight);
-        var blockInt = (uint) blockType;
-        TiledMap.TileLayers[0].SetTile(tileX, tileY, (uint) blockType);
-        if (blockInt == 0) {
-            CollisionComponent.Remove(
-                new StaticCollider(new(tileX * TiledMap.TileWidth, tileY * TiledMap.TileHeight, TiledMap.TileWidth, TiledMap.TileHeight)));
+    public static BlockType GetTile(float x, float y) {
+        if (x > MapWidth || x < 0 || y > MapHeight || y < 0) {
+            return BlockType.Air;
         }
-        else {
-            CollisionComponent.Insert
-                (new StaticCollider(new(tileX * TiledMap.TileWidth, tileY * TiledMap.TileHeight, TiledMap.TileWidth, TiledMap.TileHeight)));
-        }
-        _renderSystem.MapUpdated();
+        TiledWorld tiledWorld = main._tiledWorld;
+        int tileSize = tiledWorld.TileSize;
+        return tiledWorld[(int) (x / tileSize), (int) (y / tileSize)];
     }
 
-    public Vector2 ScreenToWorld(Vector2 position) => _renderSystem.ScreenToWorld(position.X, position.Y);
+    public static void SetTile(BlockType type, float x, float y) {
+        TiledWorld tiledWorld = main._tiledWorld;
+        int tileSize = tiledWorld.TileSize;
+        tiledWorld[(int) (x / tileSize), (int) (y / tileSize)] = type;
+    }
+
+    public static void AddTile(Tile tile) =>
+        main._collisionComponent.Insert(tile);    
+
+    public static Vector2 ScreenToWorld(Vector2 position) => main._camera.ScreenToWorld(position.X, position.Y);
+    public static Vector2 WorldToScreen(Vector2 position) => main._camera.WorldToScreen(position.X, position.Y);
 
     private Game() {
         _graphics = new GraphicsDeviceManager(this);
         _graphics.ToggleFullScreen();
+
+        var viewportAdapter = new BoxingViewportAdapter(Window, GraphicsDevice, 1920, 1080);
+        _camera = new(viewportAdapter);
+
         Content.RootDirectory = "Content";
         IsMouseVisible = true;
     }
@@ -78,63 +68,41 @@ public class Game : Microsoft.Xna.Framework.Game {
         _graphics.PreferredBackBufferWidth = 1920;
         _graphics.PreferredBackBufferHeight = 1080;
         _graphics.ApplyChanges();
-
+        _entityWorld = new(GraphicsDevice);
         base.Initialize();
     }
 
     protected override void LoadContent() {
         _spriteBatch = new(GraphicsDevice);
 
-        TiledMap = Content.Load<TiledMap>("Map1");
-        CollisionComponent = new(new(0, 0, TiledMap.WidthInPixels, TiledMap.HeightInPixels));
-        insertTileHitboxes();
-        
-        _renderSystem = new(Window, GraphicsDevice, TiledMap);
-        _world = new WorldBuilder()
-            .AddSystem(new PlayerSystem())
-            .AddSystem(_renderSystem)
-            .AddSystem(new BlockSystem())
-            .Build();
 
-        var player = _world.CreateEntity();
-        var playerTexture = Content.Load<Texture2D>("player");
-        var playerPosition = new Position { X = MapWidth / 2, Y = 100 };
-        var playerVelocity = new Velocity();
-        var playerCollider = new PlayerCollider(new(playerPosition.X, playerPosition.Y, playerTexture.Width, playerTexture.Height), playerVelocity);
-        player.Attach(new Sprite { Texture = playerTexture });
-        player.Attach(playerPosition);
-        player.Attach(playerVelocity);
-        player.Attach(new Input(Keys.A, Keys.D, Keys.LeftShift, Keys.Space));
-        player.Attach(playerCollider);
-        CollisionComponent.Insert(playerCollider);
+        var tileSet = new TileSet(Content.Load<Texture2D>("blocks"), 3, 2);
+        _tiledWorld = new TiledWorld(GraphicsDevice, tileSet, 61, 27);
+        _tiledWorld.LoadMap(Content, WorldType.Default);
+
+        _collisionComponent = new(new(0, 0, MapWidth, MapHeight));
+        _tiledWorld.InsertTiles(_collisionComponent);
         
+        var playerTexture = Content.Load<Texture2D>("player");
+        var player = new Player(playerTexture, new(WindowWidth / 2 - playerTexture.Width / 2, 100, playerTexture.Width, playerTexture.Height));
+        _entityWorld.Add(player);
+        _collisionComponent.Insert(player);
     }
 
     protected override void Update(GameTime gameTime) {
         if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape)) {
             Exit();
         }
-
-        _world.Update(gameTime);
-        CollisionComponent.Update(gameTime);
         base.Update(gameTime);
+        _tiledWorld.Update(gameTime);
+        _entityWorld.Update(gameTime);
+        _collisionComponent.Update(gameTime);
     }
 
     protected override void Draw(GameTime gameTime) {
         GraphicsDevice.Clear(Color.SkyBlue);
-        _world.Draw(gameTime);
+        _tiledWorld.Draw(gameTime);
+        _entityWorld.Draw(gameTime);
         base.Draw(gameTime);
-    }
-
-    private void insertTileHitboxes() {
-        for (ushort x = 0; x < TiledMap.Width; x++) {
-            for (ushort y = 0; y < TiledMap.Height; y++) {
-                if (!TiledMap.TileLayers[0].GetTile(x, y).IsBlank) {
-                    Game.Main.CollisionComponent.Insert(
-                        new StaticCollider(new(x * TiledMap.TileWidth, y * TiledMap.TileHeight, 
-                        TiledMap.TileWidth, TiledMap.TileHeight)));
-                }
-            }
-        }
     }
 }
