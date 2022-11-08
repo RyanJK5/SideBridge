@@ -58,6 +58,9 @@ public class Player : Entity {
         Bounds.Position += Velocity;
         resetPositions();
         
+        if (TimeSinceBowShot < ArrowCooldown) {
+            TimeSinceBowShot += gameTime.GetElapsedSeconds();
+        }
         switch (Game.Hotbar.ActiveSlot) {
             case 1:
                 tryShootBow(gameTime);
@@ -71,12 +74,13 @@ public class Player : Entity {
 
     private bool _mouseDown;
     private float _mouseCharge = 1;
-    private float _timeSinceBowShot = 0;
     private const float MaxBowCharge = 45f;
-    private const float ArrowCooldown = 3f;
+    
+    public float TimeSinceBowShot = ArrowCooldown;
+    public const float ArrowCooldown = 3f;
+    
     private void tryShootBow(GameTime gameTime) {
-        if (_timeSinceBowShot < ArrowCooldown) {
-            _timeSinceBowShot += gameTime.GetElapsedSeconds();
+        if (TimeSinceBowShot < ArrowCooldown) {
             return;
         }
         var mouseState = Mouse.GetState();
@@ -104,7 +108,7 @@ public class Player : Entity {
 
             _mouseDown = false;
             _mouseCharge = 1;
-            _timeSinceBowShot = 0;
+            TimeSinceBowShot = 0;
         }
     }
 

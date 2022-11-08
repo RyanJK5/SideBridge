@@ -1,10 +1,12 @@
 ﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
 using MonoGame.Extended.Input;
 using MonoGame.Extended.Input.InputListeners;
 using MonoGame.Extended.Collisions;
 using MonoGame.Extended.ViewportAdapters;
+using System.Collections.Generic;
 
 namespace SideBridge;
 
@@ -27,8 +29,13 @@ public class Game : Microsoft.Xna.Framework.Game {
     private TiledWorld _tiledWorld;
     private EntityWorld _entityWorld;
 
-    private Player _player;
+    public static Player Player { get; private set; }
     private Hotbar _hotbar;
+
+    private List<SoundEffect> _soundEffects;
+
+    public static SoundEffect GetSoundEffect(SoundEffectID id) =>
+        main._soundEffects[(int) id];
 
     public static Hotbar Hotbar { get => main._hotbar; }
 
@@ -51,6 +58,9 @@ public class Game : Microsoft.Xna.Framework.Game {
         TiledWorld tiledWorld = main._tiledWorld;
         int tileSize = tiledWorld.TileSize;
         tiledWorld.SetTile(type, (int) (x / tileSize), (int) (y / tileSize));
+        if (type != BlockType.Air) {
+            main._soundEffects[0].Play();
+        }
     }
 
     public static void AddCollider(ICollisionActor entity) =>
@@ -91,11 +101,14 @@ public class Game : Microsoft.Xna.Framework.Game {
         _graphics.PreferredBackBufferHeight = 1080;
         _graphics.ApplyChanges();
         _entityWorld = new(GraphicsDevice);
+        _soundEffects = new();
         base.Initialize();
     }
 
     protected override void LoadContent() {
         _spriteBatch = new(GraphicsDevice);
+
+        _soundEffects.Add(Content.Load<SoundEffect>("placeblock"));
 
         _hotbar = new(Content.Load<Texture2D>("hotbar"), GraphicsDevice);
         Components.Add(new InputListenerComponent(this, _hotbar.CreateInputListeners()));
@@ -110,9 +123,9 @@ public class Game : Microsoft.Xna.Framework.Game {
         Arrow.ArrowTexture = Content.Load<Texture2D>("arrow");
 
         var playerTexture = Content.Load<Texture2D>("player");
-        _player = new Player(playerTexture, new(WindowWidth / 2 - playerTexture.Width / 2, 100, playerTexture.Width, playerTexture.Height));
-        _entityWorld.Add(_player);
-        _collisionComponent.Insert(_player);
+        Player = new Player(playerTexture, new(WindowWidth / 2 - playerTexture.Width / 2, 100, playerTexture.Width, playerTexture.Height));
+        _entityWorld.Add(Player);
+        _collisionComponent.Insert(Player);
 
         _camera.LookAt(new(MapWidth / 2, MapHeight / 2));
     }
@@ -141,10 +154,10 @@ public class Game : Microsoft.Xna.Framework.Game {
         }
         _camera.Move(_cameraVelocity);
 
-        if (camRight - _player.Bounds.X <= sideBounds) {
+        if (camRight - Player.Bounds.X <= sideBounds) {
             _cameraVelocity.X += Acceleration;
         }
-        else if (_player.Bounds.X - camLeft <= sideBounds) {
+        else if (Player.Bounds.X - camLeft <= sideBounds) {
             _cameraVelocity.X -= Acceleration;
         }
         else if (_cameraVelocity.X > 0) {

@@ -24,6 +24,14 @@ public class Hotbar {
         _spriteBatch.Begin();
         var x = Game.WindowWidth / 2 - _texture.Width / 2;
         _spriteBatch.Draw(_texture, new Vector2(Game.WindowWidth / 2 - _texture.Width / 2, 0), Color.White);
+
+        // 0.00 - red 1f, green 0f
+        // 0.50 - red 1f, green 1f
+        // 1.00 - red 0f, green 1f
+        var percentCharged = Game.Player.TimeSinceBowShot / Player.ArrowCooldown;
+        var chargeColor = new Color(percentCharged * 2 < 1f ? 1f : 1f - percentCharged + 0.5f, percentCharged * 2 < 1f ? percentCharged * 2 : 1f, 0f);
+        _spriteBatch.FillRectangle(x, _texture.Height, percentCharged * _texture.Width, 5, chargeColor);
+        
         _spriteBatch.FillRectangle(new RectangleF(x + ActiveSlot * SlotSize, 0, SlotSize, SlotSize), Color.White * 0.5f);
         _spriteBatch.End();
     }
@@ -48,8 +56,6 @@ public class Hotbar {
                     ActiveSlot = SlotNum - 1;
                 }
             }
-            System.Console.WriteLine(ActiveSlot + " % " + 4 + " = " + ActiveSlot % 4);
-            
         };
 
         return new InputListener[] { keyListener, mouseListener };
