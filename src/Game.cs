@@ -2,7 +2,12 @@
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
-using MonoGame.Extended.Input;
+using MonoGame.Extended.Particles;
+using MonoGame.Extended.Particles.Modifiers;
+using MonoGame.Extended.Particles.Modifiers.Containers;
+using MonoGame.Extended.Particles.Modifiers.Interpolators;
+using MonoGame.Extended.Particles.Profiles;
+using MonoGame.Extended.TextureAtlases;
 using MonoGame.Extended.Input.InputListeners;
 using MonoGame.Extended.Collisions;
 using MonoGame.Extended.ViewportAdapters;
@@ -33,6 +38,8 @@ public class Game : Microsoft.Xna.Framework.Game {
     private Hotbar _hotbar;
 
     private List<SoundEffect> _soundEffects;
+    
+    private ParticleEffect[] _blockParticleEffects;
 
     public static SoundEffect GetSoundEffect(SoundEffectID id) =>
         main._soundEffects[(int) id];
@@ -57,10 +64,13 @@ public class Game : Microsoft.Xna.Framework.Game {
     public static void SetTile(BlockType type, float x, float y) {
         TiledWorld tiledWorld = main._tiledWorld;
         int tileSize = tiledWorld.TileSize;
-        tiledWorld.SetTile(type, (int) (x / tileSize), (int) (y / tileSize));
         if (type != BlockType.Air) {
             main._soundEffects[0].Play();
         }
+        else {
+            main._blockParticleEffects[(int) GetTile(x, y).Type].Trigger(WorldToScreen(new Vector2(x + tileSize / 2, y + tileSize / 2)));
+        }
+        tiledWorld.SetTile(type, (int) (x / tileSize), (int) (y / tileSize));
     }
 
     public static void AddCollider(ICollisionActor entity) =>
@@ -128,6 +138,49 @@ public class Game : Microsoft.Xna.Framework.Game {
         _collisionComponent.Insert(Player);
 
         _camera.LookAt(new(MapWidth / 2, MapHeight / 2));
+
+        _blockParticleEffects = new ParticleEffect[BlockType.GetValues(typeof(BlockType)).Length];
+        _blockParticleEffects[(int) BlockType.Blue] = createParticleEffect(new Color(61, 50, 76));
+        _blockParticleEffects[(int) BlockType.Red] = createParticleEffect(new Color(124, 54, 39));
+        _blockParticleEffects[(int) BlockType.White] = createParticleEffect(new Color(136, 115, 105));
+        _blockParticleEffects[(int) BlockType.DarkBlue] = createParticleEffect(new Color(20, 16, 25));
+        _blockParticleEffects[(int) BlockType.DarkRed] = createParticleEffect(new Color(73, 32, 23));
+
+
+    }
+
+    protected override void UnloadContent() {
+        foreach (var particleEffect in _blockParticleEffects) {
+            particleEffect.Dispose();
+        }
+        base.UnloadContent();
+    }
+
+    private ParticleEffect createParticleEffect(Color color) {
+        var particleTexture = new Texture2D(GraphicsDevice, 1, 1);
+        particleTexture.SetData(new[] { color });
+        var textureRegion = new TextureRegion2D(particleTexture);
+        return new ParticleEffect(autoTrigger: false) {
+            Emitters = new List<ParticleEmitter> {
+                new ParticleEmitter(textureRegion, 10, System.TimeSpan.FromSeconds(0.5f), Profile.BoxFill(40, 40)) {
+                    AutoTrigger = false,
+                    Parameters = new ParticleReleaseParameters {
+                        Speed = new Range<float>(200f),
+                        Opacity = new Range<float>(1f),
+                        Quantity = 3,
+                        Rotation = new Range<float>(0f, 1f),
+                    },
+                    Modifiers = {
+                        new LinearGravityModifier {Direction = Vector2.UnitY, Strength = 1500f},
+                        new AgeModifier() {
+                            Interpolators = new List<Interpolator>() {
+                                new ScaleInterpolator { StartValue = new Vector2(10f, 10f), EndValue = new Vector2(0f, 0f) }
+                            }
+                        }
+                    }
+                }
+            }
+        };
     }
 
     protected override void Update(GameTime gameTime) {
@@ -136,6 +189,9 @@ public class Game : Microsoft.Xna.Framework.Game {
         _tiledWorld.Update(gameTime);
         _entityWorld.Update(gameTime);
         _collisionComponent.Update(gameTime);
+        foreach (var particleEffect in _blockParticleEffects) {
+            particleEffect?.Update((float) gameTime.ElapsedGameTime.TotalSeconds);
+        }
     }
 
     private void updateCamera() {
@@ -184,6 +240,13 @@ public class Game : Microsoft.Xna.Framework.Game {
         GraphicsDevice.Clear(Color.SkyBlue);
         _tiledWorld.Draw(gameTime);
         _entityWorld.Draw(gameTime);
+        _spriteBatch.Begin();
+        foreach (var particleEffect in _blockParticleEffects) {
+            if (particleEffect != null) {
+                _spriteBatch.Draw(particleEffect);
+            }
+        }
+        _spriteBatch.End();
         _hotbar.Draw(gameTime);
         base.Draw(gameTime);
     }
