@@ -8,12 +8,17 @@ namespace SideBridge;
 
 public class Arrow : Entity, ICollisionActor {
     private const float VerticalAcceleration = 1f;
+    
     public static Texture2D ArrowTexture;
+
+    public readonly float Damage;
+    public readonly int PlayerID;
     private bool _collidedOnce = false;
 
-
-    public Arrow(RectangleF bounds) : base(ArrowTexture, bounds) {
+    public Arrow(RectangleF bounds, float damage, int playerID) : base(ArrowTexture, bounds) {
         Bounds = bounds;
+        Damage = damage;
+        PlayerID = playerID;
     }
 
     public override void OnCollision(CollisionEventArgs args) {
@@ -23,6 +28,9 @@ public class Arrow : Entity, ICollisionActor {
             }
             _collidedOnce = true;
         }
+        if (args.Other is Player player && player.ID != PlayerID) {
+            Game.RemoveEntity(this);
+        }
     }
 
     public override void Update(GameTime gameTime) {
@@ -31,9 +39,6 @@ public class Arrow : Entity, ICollisionActor {
     }
 
     public override void Draw(SpriteBatch spriteBatch) {
-        if (_collidedOnce) {
-            Console.WriteLine("aa");
-        }
         var normal = Velocity.NormalizedCopy();
         var rotation = MathF.Atan2(normal.Y, normal.X) + (MathF.PI / 2);
 

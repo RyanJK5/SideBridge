@@ -6,34 +6,24 @@ using MonoGame.Extended.Input.InputListeners;
 
 namespace SideBridge;
 
-public class Hotbar {
+public class Hotbar : UI {
 
     private const int SlotNum = 4;
 
-    private Texture2D _texture;
-    private SpriteBatch _spriteBatch;
     public int ActiveSlot;
     public int SlotSize { get => _texture.Width / SlotNum; }
 
-    public Hotbar(Texture2D texture, GraphicsDevice graphicsDevice) {
-        _texture = texture;
-        _spriteBatch = new(graphicsDevice);
-    }
+    public Hotbar(Texture2D texture) : base(texture) { }
 
-    public void Draw(GameTime gameTime) {
-        _spriteBatch.Begin();
+    public override void Draw(SpriteBatch spriteBatch) {
         var x = Game.WindowWidth / 2 - _texture.Width / 2;
-        _spriteBatch.Draw(_texture, new Vector2(Game.WindowWidth / 2 - _texture.Width / 2, 0), Color.White);
+        spriteBatch.Draw(_texture, new Vector2(Game.WindowWidth / 2 - _texture.Width / 2, 0), Color.White);
 
-        // 0.00 - red 1f, green 0f
-        // 0.50 - red 1f, green 1f
-        // 1.00 - red 0f, green 1f
         var percentCharged = Game.Player.TimeSinceBowShot / Player.ArrowCooldown;
         var chargeColor = new Color(percentCharged * 2 < 1f ? 1f : 1f - percentCharged + 0.5f, percentCharged * 2 < 1f ? percentCharged * 2 : 1f, 0f);
-        _spriteBatch.FillRectangle(x, _texture.Height, percentCharged * _texture.Width, 5, chargeColor);
+        spriteBatch.FillRectangle(x, _texture.Height, percentCharged * _texture.Width, 5, chargeColor);
         
-        _spriteBatch.FillRectangle(new RectangleF(x + ActiveSlot * SlotSize, 0, SlotSize, SlotSize), Color.White * 0.5f);
-        _spriteBatch.End();
+        spriteBatch.FillRectangle(new RectangleF(x + ActiveSlot * SlotSize, 0, SlotSize, SlotSize), Color.White * 0.5f);
     }
 
     public InputListener[] CreateInputListeners() {

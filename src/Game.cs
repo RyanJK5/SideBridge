@@ -36,9 +36,9 @@ public class Game : Microsoft.Xna.Framework.Game {
 
     public static Player Player { get; private set; }
     private Hotbar _hotbar;
+    private HealthBar _healthBar;
 
-    private List<SoundEffect> _soundEffects;
-    
+    private SoundEffect[] _soundEffects;
     private ParticleEffect[] _blockParticleEffects;
 
     public static SoundEffect GetSoundEffect(SoundEffectID id) =>
@@ -111,16 +111,23 @@ public class Game : Microsoft.Xna.Framework.Game {
         _graphics.PreferredBackBufferHeight = 1080;
         _graphics.ApplyChanges();
         _entityWorld = new(GraphicsDevice);
-        _soundEffects = new();
+        _soundEffects = new SoundEffect[System.Enum.GetValues(typeof(SoundEffectID)).Length];
         base.Initialize();
     }
 
     protected override void LoadContent() {
         _spriteBatch = new(GraphicsDevice);
 
-        _soundEffects.Add(Content.Load<SoundEffect>("placeblock"));
+        
+        _soundEffects[(int) SoundEffectID.PlaceBlock] = Content.Load<SoundEffect>("placeblock");
+        _soundEffects[(int) SoundEffectID.BreakBlock] = Content.Load<SoundEffect>("breakblock");
+        
 
-        _hotbar = new(Content.Load<Texture2D>("hotbar"), GraphicsDevice);
+        _hotbar = new(Content.Load<Texture2D>("hotbar"));
+        _healthBar = new(
+            Content.Load<Texture2D>("healthbar"), 
+            Content.Load<Texture2D>("empty-healthbar"),
+            Content.Load<Texture2D>("golden-healthbar"));
         Components.Add(new InputListenerComponent(this, _hotbar.CreateInputListeners()));
 
         var tileSet = new TileSet(Content.Load<Texture2D>("blocks"), 3, 2);
@@ -246,8 +253,8 @@ public class Game : Microsoft.Xna.Framework.Game {
                 _spriteBatch.Draw(particleEffect);
             }
         }
+        UI.DrawUI(_spriteBatch);
         _spriteBatch.End();
-        _hotbar.Draw(gameTime);
         base.Draw(gameTime);
     }
 }
