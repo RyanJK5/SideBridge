@@ -1,8 +1,10 @@
 using MonoGame.Extended;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended.Collisions;
+using System.Collections.Generic;
 
 namespace SideBridge;
 
@@ -19,12 +21,24 @@ public class Player : Entity {
     private const int HeightLimit = 8;
     private const int IslandWidths = 10;
 
+    private static int NextID;
+    public readonly int ID;
+
+    public float Health { get; private set; }
     public Keys[] _keyInputs;
 
-    public Player(Texture2D texture, RectangleF bounds) : base(texture, bounds) =>
+
+    public Player(Texture2D texture, RectangleF bounds) : base(texture, bounds) {
         _keyInputs = new Keys[] { Keys.A, Keys.D, Keys.LeftShift, Keys.Space };
+        Health = 20;
+        ID = NextID;
+        NextID++;
+    }
 
     public override void OnCollision(CollisionEventArgs args) {
+        if (args.Other is Arrow arrow && arrow.PlayerID == ID) {
+            RegisterDamage(arrow.Damage);
+        }
         if (args.Other is Tile other) {
             var otherBounds = other.Bounds;
             var intersection = Bounds.Intersection(otherBounds);
@@ -52,6 +66,46 @@ public class Player : Entity {
         }
     }
 
+    public override void Draw(SpriteBatch spriteBatch) {
+        base.Draw(spriteBatch);
+        
+        if (_mouseCharge == 1) {
+            return;
+        }
+
+        var mousePos = Game.ScreenToWorld(Mouse.GetState().Position.ToVector2());
+        var playerPos = Bounds.Center;
+        var vec = new Vector2(mousePos.X, mousePos.Y) - (Vector2) Bounds.Center;
+        vec.Normalize();
+        vec.X *= _mouseCharge;
+        vec.Y *= _mouseCharge;
+
+        var pos = new Vector2(playerPos.X, playerPos.Y);
+        var nextPos = new Vector2(pos.X + (vec.X + VerticalAcceleration) / 2, pos.Y + (vec.Y + VerticalAcceleration) / 2);
+        for (int i = 0; i < 10; i++) {
+            spriteBatch.DrawLine(pos.X, pos.Y, nextPos.X, nextPos.Y, Color.White, 4);
+
+            pos.X += vec.X;
+            pos.Y += vec.Y;
+            vec.Y += VerticalAcceleration;
+            nextPos.X += vec.X;
+            nextPos.Y += vec.Y;
+        }
+    }
+
+    public void RegisterDamage(float dmg) {
+        Health -= dmg;
+        if (Health <= 0) {
+            onDeath();
+        }
+    }
+
+    private void onDeath() {
+        Health = 20;
+        Velocity = Vector2.Zero;
+        Bounds.Position = new Vector2(200, 100);
+    }
+
     public override void Update(GameTime gameTime) {
         setVerticalVelocity();
         setHorizontalVelocity();
@@ -61,12 +115,19 @@ public class Player : Entity {
         if (TimeSinceBowShot < ArrowCooldown) {
             TimeSinceBowShot += gameTime.GetElapsedSeconds();
         }
+        if (Game.Hotbar.ActiveSlot != 1 && _mouseCharge > 1) {
+            _mouseCharge = 1;
+            _mouseDown = false;
+        }
         switch (Game.Hotbar.ActiveSlot) {
             case 1:
                 tryShootBow(gameTime);
                 break;
             case 2:
                 tryBlockPlacement();
+                break;
+            case 3:
+                tryDrinkPotion();
                 break;
             
         }
@@ -94,11 +155,15 @@ public class Player : Entity {
         if (_mouseDown && mouseState.LeftButton == ButtonState.Released) {
             var arrowTexture = Arrow.ArrowTexture;
             Vector2 spawnPos = Bounds.Center - new Vector2(arrowTexture.Width / 2, arrowTexture.Height / 2);
-            var mousePos = Game.ScreenToWorld(mouseState.Position.ToVector2());
-            var arrow = new Arrow(new(spawnPos.X, spawnPos.Y, 
-                arrowTexture.Height, arrowTexture.Width));
-            var vec = new Vector2(mousePos.X, mousePos.Y) - spawnPos;
             
+            var arrow = new Arrow(
+                new(spawnPos.X, spawnPos.Y, arrowTexture.Height, arrowTexture.Width), 
+                _mouseCharge / 9f,
+                ID
+            );
+            
+            var mousePos = Game.ScreenToWorld(mouseState.Position.ToVector2());
+            var vec = new Vector2(mousePos.X, mousePos.Y) - spawnPos;
             vec.Normalize();
             vec.X *= _mouseCharge;
             vec.Y *= _mouseCharge;
@@ -120,10 +185,20 @@ public class Player : Entity {
             tileY / TileSize >= HeightLimit && tileX / TileSize > IslandWidths - 1 && tileX / TileSize < Game.MapWidth - IslandWidths;
         if (Mouse.GetState().LeftButton == ButtonState.Pressed && inRange && Game.GetTile(mousePos.X, mousePos.Y).Type == BlockType.Air) {
             placeTile(tileX, tileY, mousePos);
+            return;
         }
-        else if (Mouse.GetState().RightButton == ButtonState.Pressed && inRange) {
+        if (Mouse.GetState().RightButton == ButtonState.Pressed && inRange) {
             damageTile(Game.GetTile(mousePos.X, mousePos.Y));
         }
+        else {
+            if (Game.GetTile(_lastTileSound.pos.X, _lastTileSound.pos.Y).Type != BlockType.Air) {
+                _lastTileSound.soundEffect?.Stop();
+            }
+        }
+    }
+
+    private void tryDrinkPotion() {
+
     }
 
     private void placeTile(float tileX, float tileY, Vector2 mousePos) {
@@ -148,9 +223,16 @@ public class Player : Entity {
         }
     }
 
+    private (Vector2 pos, SoundEffectInstance soundEffect) _lastTileSound;
     private void damageTile(Tile tile) {
         if (!Blocks.Breakable(tile.Type)) {
             return;
+        }
+        if (tile.Durability == Tile.MaxDurability) {
+            _lastTileSound.soundEffect?.Stop();
+            _lastTileSound.soundEffect = Game.GetSoundEffect(SoundEffectID.BreakBlock).CreateInstance();
+            _lastTileSound.pos = tile.Bounds.Position;
+            _lastTileSound.soundEffect?.Play();
         }
         tile.Durability--;
         if (tile.Durability <= 0) {
