@@ -12,13 +12,13 @@ public class Arrow : Entity, ICollisionActor {
     public static Texture2D ArrowTexture;
 
     public readonly float Damage;
-    public readonly int PlayerID;
+    public readonly Team PlayerTeam;
     private bool _collidedOnce = false;
 
-    public Arrow(RectangleF bounds, float damage, int playerID) : base(ArrowTexture, bounds) {
+    public Arrow(RectangleF bounds, float damage, Team playerTeam) : base(ArrowTexture, bounds) {
         Bounds = bounds;
         Damage = damage;
-        PlayerID = playerID;
+        PlayerTeam = playerTeam;
     }
 
     public override void OnCollision(CollisionEventArgs args) {
@@ -28,7 +28,7 @@ public class Arrow : Entity, ICollisionActor {
             }
             _collidedOnce = true;
         }
-        if (args.Other is Player player && player.ID != PlayerID) {
+        if (args.Other is Player player && player.Team != PlayerTeam) {
             Game.RemoveEntity(this);
         }
     }

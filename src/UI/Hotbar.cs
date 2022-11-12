@@ -19,10 +19,7 @@ public class Hotbar : UI {
         var x = Game.WindowWidth / 2 - _texture.Width / 2;
         spriteBatch.Draw(_texture, new Vector2(Game.WindowWidth / 2 - _texture.Width / 2, 0), Color.White);
 
-        var percentCharged = Game.Player.TimeSinceBowShot / Player.ArrowCooldown;
-        var chargeColor = new Color(percentCharged * 2 < 1f ? 1f : 1f - percentCharged + 0.5f, percentCharged * 2 < 1f ? percentCharged * 2 : 1f, 0f);
-        spriteBatch.FillRectangle(x, _texture.Height, percentCharged * _texture.Width, 5, chargeColor);
-        
+        spriteBatch.DrawPercentageBar(new Rectangle(x, _texture.Height, _texture.Width, 5), Game.Player.TimeSinceBowShot / Player.ArrowCooldown);
         spriteBatch.FillRectangle(new RectangleF(x + ActiveSlot * SlotSize, 0, SlotSize, SlotSize), Color.White * 0.5f);
     }
 

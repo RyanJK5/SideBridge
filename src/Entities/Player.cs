@@ -21,22 +21,19 @@ public class Player : Entity {
     private const int HeightLimit = 8;
     private const int IslandWidths = 10;
 
-    private static int NextID;
-    public readonly int ID;
-
     public float Health { get; private set; }
-    public Keys[] _keyInputs;
+    public readonly Team Team;
+    private Keys[] _keyInputs;
 
 
-    public Player(Texture2D texture, RectangleF bounds) : base(texture, bounds) {
+    public Player(Texture2D texture, RectangleF bounds, Team team) : base(texture, bounds) {
         _keyInputs = new Keys[] { Keys.A, Keys.D, Keys.LeftShift, Keys.Space };
         Health = 20;
-        ID = NextID;
-        NextID++;
+        Team = team;
     }
 
     public override void OnCollision(CollisionEventArgs args) {
-        if (args.Other is Arrow arrow && arrow.PlayerID == ID) {
+        if (args.Other is Arrow arrow && arrow.PlayerTeam != Team) {
             RegisterDamage(arrow.Damage);
         }
         if (args.Other is Tile other) {
@@ -69,7 +66,13 @@ public class Player : Entity {
     public override void Draw(SpriteBatch spriteBatch) {
         base.Draw(spriteBatch);
         
-        if (_mouseCharge == 1) {
+        if (_potionCharge > 0) {
+            var barBounds = new Rectangle((int) Bounds.X - 2, (int) Bounds.Y - 10, (int) Bounds.Width + 4, 6);
+            spriteBatch.FillRectangle(barBounds, Color.DarkRed);
+            spriteBatch.DrawPercentageBar(barBounds, _potionCharge / PotionDrinkTime);
+        }
+
+        if (_bowCharge == 1) {
             return;
         }
 
@@ -77,8 +80,8 @@ public class Player : Entity {
         var playerPos = Bounds.Center;
         var vec = new Vector2(mousePos.X, mousePos.Y) - (Vector2) Bounds.Center;
         vec.Normalize();
-        vec.X *= _mouseCharge;
-        vec.Y *= _mouseCharge;
+        vec.X *= _bowCharge;
+        vec.Y *= _bowCharge;
 
         var pos = new Vector2(playerPos.X, playerPos.Y);
         var nextPos = new Vector2(pos.X + (vec.X + VerticalAcceleration) / 2, pos.Y + (vec.Y + VerticalAcceleration) / 2);
@@ -109,34 +112,50 @@ public class Player : Entity {
     public override void Update(GameTime gameTime) {
         setVerticalVelocity();
         setHorizontalVelocity();
-        Bounds.Position += Velocity;
+
+        if (_bowCharge > 1 || _potionCharge > 0) {
+            Bounds.X += Velocity.X / 4;
+        }
+        else if (Keyboard.GetState().IsKeyDown(_keyInputs[(int) PlayerAction.Sprint])) {
+            Bounds.X += Velocity.X * 1.5f;
+        }
+        else {
+            Bounds.X += Velocity.X;
+        }
+        Bounds.Y += Velocity.Y;
         resetPositions();
         
         if (TimeSinceBowShot < ArrowCooldown) {
             TimeSinceBowShot += gameTime.GetElapsedSeconds();
         }
-        if (Game.Hotbar.ActiveSlot != 1 && _mouseCharge > 1) {
-            _mouseCharge = 1;
+        if (Game.Hotbar.ActiveSlot != 1 && _bowCharge > 1) {
+            _bowCharge = 1;
             _mouseDown = false;
         }
+        if (Game.Hotbar.ActiveSlot != 3 && _potionCharge > 0) {
+            _potionCharge = 0;
+        }
+
         switch (Game.Hotbar.ActiveSlot) {
             case 1:
                 tryShootBow(gameTime);
                 break;
             case 2:
-                tryBlockPlacement();
+                tryBlockPlacement(gameTime);
                 break;
             case 3:
-                tryDrinkPotion();
+                tryDrinkPotion(gameTime);
                 break;
             
         }
     }
 
     private bool _mouseDown;
-    private float _mouseCharge = 1;
+    private float _bowCharge = 1;
+    private float _potionCharge = 1;
     private const float MaxBowCharge = 45f;
-    
+    private const float PotionDrinkTime = 1.61f;
+
     public float TimeSinceBowShot = ArrowCooldown;
     public const float ArrowCooldown = 3f;
     
@@ -147,9 +166,9 @@ public class Player : Entity {
         var mouseState = Mouse.GetState();
         if (mouseState.LeftButton == ButtonState.Pressed) {
             _mouseDown = true;
-            _mouseCharge += 0.5f;
-            if (_mouseCharge > MaxBowCharge) {
-                _mouseCharge = MaxBowCharge;
+            _bowCharge += 0.5f;
+            if (_bowCharge > MaxBowCharge) {
+                _bowCharge = MaxBowCharge;
             }
         }
         if (_mouseDown && mouseState.LeftButton == ButtonState.Released) {
@@ -158,26 +177,26 @@ public class Player : Entity {
             
             var arrow = new Arrow(
                 new(spawnPos.X, spawnPos.Y, arrowTexture.Height, arrowTexture.Width), 
-                _mouseCharge / 9f,
-                ID
+                _bowCharge / 9f,
+                Team
             );
             
             var mousePos = Game.ScreenToWorld(mouseState.Position.ToVector2());
             var vec = new Vector2(mousePos.X, mousePos.Y) - spawnPos;
             vec.Normalize();
-            vec.X *= _mouseCharge;
-            vec.Y *= _mouseCharge;
+            vec.X *= _bowCharge;
+            vec.Y *= _bowCharge;
             
             arrow.Velocity = vec;
             Game.AddEntity(arrow);
 
             _mouseDown = false;
-            _mouseCharge = 1;
+            _bowCharge = 1;
             TimeSinceBowShot = 0;
         }
     }
 
-    private void tryBlockPlacement() {
+    private void tryBlockPlacement(GameTime gameTime) {
         Vector2 mousePos = Game.ScreenToWorld(Mouse.GetState().Position.ToVector2());
         var tileX = (int) (mousePos.X / TileSize) * TileSize;
         var tileY = (int) (mousePos.Y / TileSize) * TileSize;
@@ -197,8 +216,18 @@ public class Player : Entity {
         }
     }
 
-    private void tryDrinkPotion() {
-
+    private void tryDrinkPotion(GameTime gameTime) {
+        var mouseState = Mouse.GetState();
+        if (mouseState.LeftButton == ButtonState.Pressed) {
+            _potionCharge += gameTime.GetElapsedSeconds();
+            if (_potionCharge >= PotionDrinkTime) {
+                _potionCharge = 0;
+                Health = 24;
+            }
+        }
+        else {
+            _potionCharge = 0;
+        }
     }
 
     private void placeTile(float tileX, float tileY, Vector2 mousePos) {
@@ -217,7 +246,9 @@ public class Player : Entity {
                 continue;
             }
             if (Game.GetTile(mousePos.X + vec.X, mousePos.Y + vec.Y).Type != BlockType.Air) {
-                Game.SetTile(tileY / TileSize <= HeightLimit ? BlockType.DarkBlue : BlockType.Blue, mousePos.X, mousePos.Y);
+                var normalBlockType = Team == Team.Red ? BlockType.Red : BlockType.Blue;
+                var darkBlockType = Team == Team.Red ? BlockType.DarkRed : BlockType.DarkBlue;
+                Game.SetTile(tileY / TileSize <= HeightLimit ? darkBlockType : normalBlockType, mousePos.X, mousePos.Y);
                 break;
             }
         }
@@ -241,31 +272,26 @@ public class Player : Entity {
     }
 
     private void setHorizontalVelocity() {
-        float speed = HorizontalAcceleration;
-        if (Keyboard.GetState().IsKeyDown(_keyInputs[(int) PlayerAction.Sprint])) {
-            speed *= 2;
-        }
-
         bool leftDown = Keyboard.GetState().IsKeyDown(_keyInputs[(int) PlayerAction.Left]);
         bool rightDown = Keyboard.GetState().IsKeyDown(_keyInputs[(int) PlayerAction.Right]);
         if (leftDown && !(rightDown && Velocity.X <= 0)) {
-            updateVelocity(-speed, 0);
+            updateVelocity(-HorizontalAcceleration, 0);
         }
         else if (!leftDown && Velocity.X <= 0) {
-            updateVelocity(speed, 0, 0, MaximumVerticalVelocity);
+            updateVelocity(HorizontalAcceleration, 0, 0, MaximumVerticalVelocity);
         }
         if (rightDown && !(leftDown && Velocity.X >= 0)) {
-            updateVelocity(speed, 0);
+            updateVelocity(HorizontalAcceleration, 0);
         }
         else if (!rightDown && Velocity.X >= 0) {
-            updateVelocity(-speed, 0, 0, MaximumVerticalVelocity);
+            updateVelocity(-HorizontalAcceleration, 0, 0, MaximumVerticalVelocity);
         }
         if (!leftDown && !rightDown && Velocity.X != 0) {
             if (Velocity.X < 0) {
-                updateVelocity(speed, 0, 0, MaximumVerticalVelocity);
+                updateVelocity(HorizontalAcceleration, 0, 0, MaximumVerticalVelocity);
             }
             else {
-                updateVelocity(-speed, 0, 0, MaximumVerticalVelocity);
+                updateVelocity(-HorizontalAcceleration, 0, 0, MaximumVerticalVelocity);
             }
         }
     }

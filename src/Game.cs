@@ -140,7 +140,7 @@ public class Game : Microsoft.Xna.Framework.Game {
         Arrow.ArrowTexture = Content.Load<Texture2D>("arrow");
 
         var playerTexture = Content.Load<Texture2D>("player");
-        Player = new Player(playerTexture, new(WindowWidth / 2 - playerTexture.Width / 2, 100, playerTexture.Width, playerTexture.Height));
+        Player = new Player(playerTexture, new(WindowWidth / 2 - playerTexture.Width / 2, 100, playerTexture.Width, playerTexture.Height), Team.Red);
         _entityWorld.Add(Player);
         _collisionComponent.Insert(Player);
 
@@ -152,13 +152,11 @@ public class Game : Microsoft.Xna.Framework.Game {
         _blockParticleEffects[(int) BlockType.White] = createParticleEffect(new Color(136, 115, 105));
         _blockParticleEffects[(int) BlockType.DarkBlue] = createParticleEffect(new Color(20, 16, 25));
         _blockParticleEffects[(int) BlockType.DarkRed] = createParticleEffect(new Color(73, 32, 23));
-
-
     }
 
     protected override void UnloadContent() {
         foreach (var particleEffect in _blockParticleEffects) {
-            particleEffect.Dispose();
+            particleEffect?.Dispose();
         }
         base.UnloadContent();
     }
