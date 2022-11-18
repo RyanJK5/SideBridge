@@ -51,7 +51,7 @@ public class Game : Microsoft.Xna.Framework.Game {
         TiledWorld tiledWorld = main._tiledWorld;
         int tileSize = tiledWorld.TileSize;
         if (x > MapWidth || x < 0 || y > MapHeight || y < 0) {
-            return new Tile(BlockType.Air, new((int) (x / tileSize) * tileSize, (int) (y / tileSize) * tileSize, tileSize, tileSize));
+            return new Tile(BlockID.Air, new((int) (x / tileSize) * tileSize, (int) (y / tileSize) * tileSize, tileSize, tileSize));
         }
         return tiledWorld[(int) (x / tileSize), (int) (y / tileSize)];
     }
@@ -60,10 +60,10 @@ public class Game : Microsoft.Xna.Framework.Game {
         main._tiledWorld.CheckTileCollisions(entity);
     }
 
-    public static void SetTile(BlockType type, float x, float y) {
+    public static void SetTile(BlockID type, float x, float y) {
         TiledWorld tiledWorld = main._tiledWorld;
         int tileSize = tiledWorld.TileSize;
-        if (type != BlockType.Air) {
+        if (type != BlockID.Air) {
             main._soundEffects[0].Play();
         }
         else {
@@ -136,12 +136,12 @@ public class Game : Microsoft.Xna.Framework.Game {
 
         _camera.LookAt(new(MapWidth / 2, MapHeight / 2));
 
-        _blockParticleEffects = new ParticleEffect[BlockType.GetValues(typeof(BlockType)).Length];
-        _blockParticleEffects[(int) BlockType.Blue] = createParticleEffect(new Color(61, 50, 76));
-        _blockParticleEffects[(int) BlockType.Red] = createParticleEffect(new Color(124, 54, 39));
-        _blockParticleEffects[(int) BlockType.White] = createParticleEffect(new Color(136, 115, 105));
-        _blockParticleEffects[(int) BlockType.DarkBlue] = createParticleEffect(new Color(20, 16, 25));
-        _blockParticleEffects[(int) BlockType.DarkRed] = createParticleEffect(new Color(73, 32, 23));
+        _blockParticleEffects = new ParticleEffect[BlockID.GetValues(typeof(BlockID)).Length];
+        _blockParticleEffects[(int) BlockID.Blue] = createParticleEffect(new Color(61, 50, 76));
+        _blockParticleEffects[(int) BlockID.Red] = createParticleEffect(new Color(124, 54, 39));
+        _blockParticleEffects[(int) BlockID.White] = createParticleEffect(new Color(136, 115, 105));
+        _blockParticleEffects[(int) BlockID.DarkBlue] = createParticleEffect(new Color(20, 16, 25));
+        _blockParticleEffects[(int) BlockID.DarkRed] = createParticleEffect(new Color(73, 32, 23));
     }
 
     protected override void UnloadContent() {

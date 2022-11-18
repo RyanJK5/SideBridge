@@ -229,7 +229,7 @@ public class Player : Entity {
         var tileY = (int) (mousePos.Y / TileSize) * TileSize;
         bool inRange = Vector2.Distance(new(tileX, tileY), Bounds.Position) < TileReach * TileSize && 
             tileY / TileSize >= HeightLimit && tileX / TileSize > IslandWidths - 1 && tileX / TileSize < Game.MapWidth - IslandWidths;
-        if (Mouse.GetState().LeftButton == ButtonState.Pressed && inRange && Game.GetTile(mousePos.X, mousePos.Y).Type == BlockType.Air) {
+        if (Mouse.GetState().LeftButton == ButtonState.Pressed && inRange && Game.GetTile(mousePos.X, mousePos.Y).Type == BlockID.Air) {
             placeTile(tileX, tileY, mousePos);
             return;
         }
@@ -237,7 +237,7 @@ public class Player : Entity {
             damageTile(Game.GetTile(mousePos.X, mousePos.Y));
         }
         else {
-            if (Game.GetTile(_lastTileSound.pos.X, _lastTileSound.pos.Y).Type != BlockType.Air) {
+            if (Game.GetTile(_lastTileSound.pos.X, _lastTileSound.pos.Y).Type != BlockID.Air) {
                 _lastTileSound.soundEffect?.Stop();
             }
         }
@@ -285,9 +285,9 @@ public class Player : Entity {
                 mousePos.Y + vec.Y > Game.MapHeight || mousePos.Y + vec.Y < 0) {
                 continue;
             }
-            if (Game.GetTile(mousePos.X + vec.X, mousePos.Y + vec.Y).Type != BlockType.Air) {
-                var normalBlockType = Team == Team.Red ? BlockType.Red : BlockType.Blue;
-                var darkBlockType = Team == Team.Red ? BlockType.DarkRed : BlockType.DarkBlue;
+            if (Game.GetTile(mousePos.X + vec.X, mousePos.Y + vec.Y).Type != BlockID.Air) {
+                var normalBlockType = Team == Team.Red ? BlockID.Red : BlockID.Blue;
+                var darkBlockType = Team == Team.Red ? BlockID.DarkRed : BlockID.DarkBlue;
                 Game.SetTile(tileY / TileSize <= HeightLimit ? darkBlockType : normalBlockType, mousePos.X, mousePos.Y);
                 break;
             }
@@ -307,7 +307,7 @@ public class Player : Entity {
         }
         tile.Durability--;
         if (tile.Durability <= 0) {
-            Game.SetTile(BlockType.Air, tile.Bounds.X, tile.Bounds.Y);
+            Game.SetTile(BlockID.Air, tile.Bounds.X, tile.Bounds.Y);
         }
     }
 
@@ -338,8 +338,8 @@ public class Player : Entity {
 
     private void setVerticalVelocity() {
         if  (Bounds.Bottom < Game.MapHeight && Bounds.Bottom > 0 && (
-            Game.GetTile(Bounds.X, Bounds.Bottom).Type != BlockType.Air ||
-            Game.GetTile(Bounds.Right - 1, Bounds.Bottom).Type != BlockType.Air
+            Game.GetTile(Bounds.X, Bounds.Bottom).Type != BlockID.Air ||
+            Game.GetTile(Bounds.Right - 1, Bounds.Bottom).Type != BlockID.Air
             )) {
             if (Keyboard.GetState().IsKeyDown(_keyInputs[(int) PlayerAction.Jump])) {
                 Velocity.Y = -11f;
