@@ -6,14 +6,13 @@ using System;
 
 namespace SideBridge;
 
-public class Arrow : Entity, ICollisionActor {
+public class Arrow : Entity {
     private const float VerticalAcceleration = 1f;
     
     public static Texture2D ArrowTexture;
 
     public readonly float Damage;
     public readonly Team PlayerTeam;
-    private bool _collidedOnce = false;
 
     public Arrow(RectangleF bounds, float damage, Team playerTeam) : base(ArrowTexture, bounds) {
         Bounds = bounds;
@@ -21,16 +20,10 @@ public class Arrow : Entity, ICollisionActor {
         PlayerTeam = playerTeam;
     }
 
-    public override void OnCollision(CollisionEventArgs args) {
-        if (args.Other is Tile) {
-            if (_collidedOnce) {
-                Game.RemoveEntity(this);
-            }
-            _collidedOnce = true;
-        }
-        if (args.Other is Player player && player.Team != PlayerTeam) {
-            Game.RemoveEntity(this);
-        }
+    public override void OnCollision(Entity other) { }
+
+    public override void OnTileCollision(Tile tile) {
+        Game.RemoveEntity(this);
     }
 
     public override void Update(GameTime gameTime) {
@@ -40,22 +33,19 @@ public class Arrow : Entity, ICollisionActor {
 
     public override void Draw(SpriteBatch spriteBatch) {
         var normal = Velocity.NormalizedCopy();
-        var rotation = MathF.Atan2(normal.Y, normal.X) + (MathF.PI / 2);
-
-        ((ICollisionActor) this).Bounds.Rotate(rotation);
-
+        var rotation = MathF.Atan2(normal.Y, normal.X);
         spriteBatch.Draw(
             Texture, 
-            Bounds.Position, 
+            Bounds.Center, 
             null, 
             Color.White,
             rotation,
-            Vector2.Zero,
+            Bounds.Center - Bounds.Position,
             Vector2.One,
             SpriteEffects.None,
             0f
         );
+        spriteBatch.DrawRectangle(Bounds, Color.Red);
     }
 
-    IShapeF ICollisionActor.Bounds => Bounds;
 }

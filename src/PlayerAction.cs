@@ -4,5 +4,6 @@ public enum PlayerAction {
     Left,
     Right, 
     Sprint,
-    Jump
+    Jump,
+    Void
 }

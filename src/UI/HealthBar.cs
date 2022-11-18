@@ -7,23 +7,26 @@ public class HealthBar : UI {
 
     private Texture2D _emptyTexture;
     private Texture2D _bonusTexture;
+
+    private Player _player;
     
     public int CellWidth { get => _emptyTexture.Width / 20; }
 
-    public HealthBar(Texture2D fullTexture, Texture2D emptyTexture, Texture2D bonusTexture) : base(fullTexture) {
+    public HealthBar(Texture2D fullTexture, Texture2D emptyTexture, Texture2D bonusTexture, Vector2 drawPos) : base(fullTexture, drawPos) {
         _emptyTexture = emptyTexture;
         _bonusTexture = bonusTexture;
+        _player = Game.Player1;
     }
 
     public override void Draw(SpriteBatch spriteBatch) {
-        var playerHealth = Game.Player.Health;
+        var playerHealth = _player.Health;
         if (playerHealth >= 20) {
-            spriteBatch.Draw(_texture, new Vector2(10, 10), Color.White);
+            spriteBatch.Draw(Texture, DrawPos, Color.White);
             if (playerHealth > 20) {
                 spriteBatch.Draw(
                     _bonusTexture,
-                    new Vector2(10, 10),
-                    new Rectangle(0, 0, (int) (CellWidth * (playerHealth - 20)) + 1, _texture.Height),
+                    DrawPos,
+                    new Rectangle(0, 0, (int) (CellWidth * (playerHealth - 20)) + 1, Texture.Height),
                     Color.White,
                     0f,
                     Vector2.Zero,
@@ -34,11 +37,11 @@ public class HealthBar : UI {
             }
             return;
         }
-        spriteBatch.Draw(_emptyTexture, new Vector2(10, 10), Color.White);
+        spriteBatch.Draw(_emptyTexture, DrawPos, Color.White);
         spriteBatch.Draw(
-            _texture,
-            new Vector2(10, 10),
-            new Rectangle(0, 0, (int) (CellWidth * playerHealth) + 1, _texture.Height),
+            Texture,
+            DrawPos,
+            new Rectangle(0, 0, (int) (CellWidth * playerHealth) + 1, Texture.Height),
             Color.White,
             0f,
             Vector2.Zero,
@@ -47,4 +50,8 @@ public class HealthBar : UI {
             0f
         );
     }
+
+    public void SetPlayer(Player player) =>
+        _player = player;
+    
 }

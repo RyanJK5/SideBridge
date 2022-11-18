@@ -9,18 +9,18 @@ namespace SideBridge;
 public class Hotbar : UI {
 
     private const int SlotNum = 4;
-
     public int ActiveSlot;
-    public int SlotSize { get => _texture.Width / SlotNum; }
+    public int SlotSize { get => Texture.Width / SlotNum; }
 
-    public Hotbar(Texture2D texture) : base(texture) { }
+    public Hotbar(Texture2D texture, Vector2 drawPos) : base(texture, drawPos) { }
 
     public override void Draw(SpriteBatch spriteBatch) {
-        var x = Game.WindowWidth / 2 - _texture.Width / 2;
-        spriteBatch.Draw(_texture, new Vector2(Game.WindowWidth / 2 - _texture.Width / 2, 0), Color.White);
+        spriteBatch.Draw(Texture, DrawPos, Color.White);
 
-        spriteBatch.DrawPercentageBar(new Rectangle(x, _texture.Height, _texture.Width, 5), Game.Player.TimeSinceBowShot / Player.ArrowCooldown);
-        spriteBatch.FillRectangle(new RectangleF(x + ActiveSlot * SlotSize, 0, SlotSize, SlotSize), Color.White * 0.5f);
+        var offset = (DrawPos.Y + Texture.Height > Game.WindowWidth) ? -Texture.Height : Texture.Height;
+        spriteBatch.DrawPercentageBar(new RectangleF(DrawPos.X, DrawPos.Y + offset, Texture.Width, 5), 
+            Game.Player1.TimeSinceBowShot / Player.ArrowCooldown);
+        spriteBatch.FillRectangle(new RectangleF(DrawPos.X + ActiveSlot * SlotSize, DrawPos.Y, SlotSize, SlotSize), Color.White * 0.5f);
     }
 
     public InputListener[] CreateInputListeners() {
@@ -28,6 +28,9 @@ public class Hotbar : UI {
         keyListener.KeyPressed += (sender, args) => {
             if (args.Key > Keys.D0 && args.Key <= Keys.D9) {
                 ActiveSlot = args.Key - Keys.D1;
+                if (ActiveSlot > SlotNum) {
+                    ActiveSlot = SlotNum;
+                }
             }
         };
         

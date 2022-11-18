@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
 using MonoGame.Extended.Tiled;
 using MonoGame.Extended.Collisions;
+using System;
 
 namespace SideBridge;
 
@@ -71,22 +72,48 @@ public class TiledWorld : SimpleDrawableGameComponent {
         }
     }
 
+    public void CheckTileCollisions(Entity entity) {
+        var tileSize = _tileSet.TileSize;
+        var bounds = entity.Bounds;
+        Tile[] possibleCollisions = {
+            this[(int) (bounds.Left / tileSize), (int) (bounds.Top / tileSize)],
+            this[(int) (bounds.Right / tileSize), (int) (bounds.Top / tileSize)],
+            this[(int) (bounds.Left / tileSize), (int) (bounds.Top / tileSize)],
+            this[(int) (bounds.Left / tileSize), (int) (bounds.Bottom / tileSize)]
+        };
+        foreach (Tile tile in possibleCollisions) {
+            if (tile.Type != BlockType.Air && tile.Bounds.Intersects(tile.Bounds)) {
+                entity.OnTileCollision(tile);
+            }
+        }
+    }
+
     public Tile this[int x, int y] {
-        get => _tileGrid[x + Width * y];
+        get {
+            pushInBounds(ref x, ref y);
+            return _tileGrid[x + Width * y];
+        }
+    }
+
+    private void pushInBounds(ref int x, ref int y) {
+        if (x < 0) {
+            x = 0;
+        }
+        if (x > Width) {
+            x = Width;
+        }
+        if (y < 0) {
+            y = 0;
+        }
+        if (y > Height) {
+            y = Height;
+        }
     }
 
     public void SetTile(BlockType type, int x, int y) {
         int tileSize = _tileSet.TileSize;
         var tile = new Tile(type, new(x * tileSize, y * tileSize, tileSize, tileSize));
         var oldTile = _tileGrid[x + Width * y]; 
-        if (oldTile.Type == BlockType.Air) {
-            if (type != BlockType.Air) {
-                Game.AddCollider(tile);
-            }
-        }
-        else if (type == BlockType.Air) {
-            Game.RemoveCollider(oldTile);
-        }
         _tileGrid[x + Width * y] = tile;
     }
 
@@ -99,14 +126,6 @@ public class TiledWorld : SimpleDrawableGameComponent {
             var tile = new Tile((BlockType) tiledMapTile.GlobalIdentifier, 
                 new(tiledMapTile.X * tileSize, tiledMapTile.Y * tileSize, tileSize, tileSize));
             _tileGrid[i] = tile;
-        }
-    }
-
-    public void InsertTiles(CollisionComponent collisionComponent) {
-        foreach (Tile tile in _tileGrid) {
-            if (tile.Type != BlockType.Air) {
-                collisionComponent.Insert(tile);
-            }
         }
     }
 }

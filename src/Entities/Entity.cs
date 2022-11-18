@@ -5,7 +5,7 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace SideBridge;
 
-public abstract class Entity : ICollisionActor {
+public abstract class Entity {
 
     public Texture2D Texture;
     public RectangleF Bounds;
@@ -18,12 +18,12 @@ public abstract class Entity : ICollisionActor {
     }
 
 
-    public abstract void OnCollision(CollisionEventArgs collisionInfo);
+    public abstract void OnCollision(Entity other);
+    
+    public abstract void OnTileCollision(Tile tile);
 
     public abstract void Update(GameTime gameTime);
 
     public virtual void Draw(SpriteBatch spriteBatch) =>
         spriteBatch.Draw(Texture, Bounds.Position, Color.White);
-
-    IShapeF ICollisionActor.Bounds => Bounds;
 }

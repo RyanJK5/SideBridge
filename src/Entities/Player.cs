@@ -3,8 +3,6 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Graphics;
-using MonoGame.Extended.Collisions;
-using System.Collections.Generic;
 
 namespace SideBridge;
 
@@ -16,50 +14,80 @@ public class Player : Entity {
     private const float HorizontalAcceleration = 1f;
 
     private const float TileReach = 3.5f;
-    private const int TileDurability = 10;
     private const int TileSize = 40;
     private const int HeightLimit = 8;
     private const int IslandWidths = 10;
 
+    private const float MaxBowCharge = 45f;
+    private const float PotionDrinkTime = 1.61f;
+    private const float VoidTime = 1f;
+    public const float ArrowCooldown = 3f;
+
+    public float TimeSinceBowShot = ArrowCooldown;
+    private bool _mouseDown;
+    private float _bowCharge = 1;
+    private float _potionCharge;
+    private float _voidCharge;
+
+
     public float Health { get; private set; }
-    public readonly Team Team;
     private Keys[] _keyInputs;
 
-
-    public Player(Texture2D texture, RectangleF bounds, Team team) : base(texture, bounds) {
-        _keyInputs = new Keys[] { Keys.A, Keys.D, Keys.LeftShift, Keys.Space };
-        Health = 20;
-        Team = team;
+    public readonly Team Team;
+    public Vector2 SpawnPosition { 
+        get => Team == Team.Blue ? new(200, 100) : new(Game.MapWidth - 200, 100);
     }
 
-    public override void OnCollision(CollisionEventArgs args) {
-        if (args.Other is Arrow arrow && arrow.PlayerTeam != Team) {
-            RegisterDamage(arrow.Damage);
-        }
-        if (args.Other is Tile other) {
-            var otherBounds = other.Bounds;
-            var intersection = Bounds.Intersection(otherBounds);
+    private Hotbar _hotbar;
+    private HealthBar _healthBar;
 
-            var adj = Bounds.Width / otherBounds.Height;
-            var adj2 = otherBounds.Height / Bounds.Width;
-            if (intersection.Height * adj2 > intersection.Width) {
-                if (Bounds.X < otherBounds.Position.X) {
-                    Bounds.X -= intersection.Width;
-                }
-                else {
-                    Bounds.X += intersection.Width;
-                }
-                Velocity.X = 0;
+    public Player(Texture2D texture, Hotbar hotbar, HealthBar healthBar, RectangleF bounds, Team team) : base(texture, bounds) {
+        if (team == Team.Blue) {
+            _keyInputs = new Keys[] { Keys.A, Keys.D, Keys.LeftShift, Keys.W, Keys.Q };
+        }
+        else {
+            _keyInputs = new Keys[] { Keys.L, Keys.OemQuotes, Keys.RightShift, Keys.P, Keys.OemOpenBrackets };
+        }
+        
+        _hotbar = hotbar;
+        _healthBar = healthBar;
+        _healthBar.SetPlayer(this);
+
+        Health = 20;
+        Team = team;
+        Bounds.Position = SpawnPosition;
+    }
+
+    public override void OnCollision(Entity other) {
+        if (other is Arrow arrow && arrow.PlayerTeam != Team && Game.ContainsEntity(arrow)) {
+            RegisterDamage(arrow.Damage);
+            Game.RemoveEntity(arrow);
+        }
+    }
+
+    public override void OnTileCollision(Tile tile) {
+        var otherBounds = tile.Bounds;
+        var intersection = Bounds.Intersection(otherBounds);
+
+        var adj = Bounds.Width / otherBounds.Height;
+        var adj2 = otherBounds.Height / Bounds.Width;
+        if (intersection.Height * adj2 > intersection.Width) {
+            if (Bounds.X < otherBounds.Position.X) {
+                Bounds.X -= intersection.Width;
             }
             else {
-                if (Bounds.Y < otherBounds.Y) { 
-                    Bounds.Y -= intersection.Height;
-                }
-                else {
-                    Bounds.Y += intersection.Height;
-                }
-                Velocity.Y = 0;
+                Bounds.X += intersection.Width;
             }
+            Velocity.X = 0;
+        }
+        else {
+            if (Bounds.Y < otherBounds.Y) { 
+                Bounds.Y -= intersection.Height;
+            }
+            else {
+                Bounds.Y += intersection.Height;
+            }
+            Velocity.Y = 0;
         }
     }
 
@@ -67,9 +95,14 @@ public class Player : Entity {
         base.Draw(spriteBatch);
         
         if (_potionCharge > 0) {
-            var barBounds = new Rectangle((int) Bounds.X - 2, (int) Bounds.Y - 10, (int) Bounds.Width + 4, 6);
+            var barBounds = new RectangleF(Bounds.X - 2, Bounds.Y - 10, Bounds.Width + 4, 6);
             spriteBatch.FillRectangle(barBounds, Color.DarkRed);
             spriteBatch.DrawPercentageBar(barBounds, _potionCharge / PotionDrinkTime);
+        }
+        if (_voidCharge > 0) {
+            var barBounds = new RectangleF(Bounds.X - 2, Bounds.Y - (_potionCharge > 0 ? 20 : 10), Bounds.Width + 4, 6);
+            spriteBatch.FillRectangle(barBounds, Color.Purple);
+            spriteBatch.DrawPercentageBar(barBounds, _voidCharge / VoidTime, false);
         }
 
         if (_bowCharge == 1) {
@@ -106,37 +139,27 @@ public class Player : Entity {
     private void onDeath() {
         Health = 20;
         Velocity = Vector2.Zero;
-        Bounds.Position = new Vector2(200, 100);
+        Bounds.Position = SpawnPosition;
     }
 
     public override void Update(GameTime gameTime) {
         setVerticalVelocity();
         setHorizontalVelocity();
-
-        if (_bowCharge > 1 || _potionCharge > 0) {
-            Bounds.X += Velocity.X / 4;
-        }
-        else if (Keyboard.GetState().IsKeyDown(_keyInputs[(int) PlayerAction.Sprint])) {
-            Bounds.X += Velocity.X * 1.5f;
-        }
-        else {
-            Bounds.X += Velocity.X;
-        }
-        Bounds.Y += Velocity.Y;
+        updatePosition();
         resetPositions();
-        
+
         if (TimeSinceBowShot < ArrowCooldown) {
             TimeSinceBowShot += gameTime.GetElapsedSeconds();
         }
-        if (Game.Hotbar.ActiveSlot != 1 && _bowCharge > 1) {
+        if (_hotbar.ActiveSlot != 1 && _bowCharge > 1) {
             _bowCharge = 1;
             _mouseDown = false;
         }
-        if (Game.Hotbar.ActiveSlot != 3 && _potionCharge > 0) {
+        if (_hotbar.ActiveSlot != 3 && _potionCharge > 0) {
             _potionCharge = 0;
         }
 
-        switch (Game.Hotbar.ActiveSlot) {
+        switch (_hotbar.ActiveSlot) {
             case 1:
                 tryShootBow(gameTime);
                 break;
@@ -146,19 +169,23 @@ public class Player : Entity {
             case 3:
                 tryDrinkPotion(gameTime);
                 break;
-            
         }
+        tryVoid(gameTime);
     }
 
-    private bool _mouseDown;
-    private float _bowCharge = 1;
-    private float _potionCharge = 1;
-    private const float MaxBowCharge = 45f;
-    private const float PotionDrinkTime = 1.61f;
+    private void updatePosition() {
+        if (_bowCharge > 1 || _potionCharge > 0 || _voidCharge > 0) {
+            Bounds.X += Velocity.X / 4;
+        }
+        else if (Keyboard.GetState().IsKeyDown(_keyInputs[(int) PlayerAction.Sprint])) {
+            Bounds.X += Velocity.X * 1.5f;
+        }
+        else {
+            Bounds.X += Velocity.X;
+        }
+        Bounds.Y += Velocity.Y;
+    }
 
-    public float TimeSinceBowShot = ArrowCooldown;
-    public const float ArrowCooldown = 3f;
-    
     private void tryShootBow(GameTime gameTime) {
         if (TimeSinceBowShot < ArrowCooldown) {
             return;
@@ -176,7 +203,7 @@ public class Player : Entity {
             Vector2 spawnPos = Bounds.Center - new Vector2(arrowTexture.Width / 2, arrowTexture.Height / 2);
             
             var arrow = new Arrow(
-                new(spawnPos.X, spawnPos.Y, arrowTexture.Height, arrowTexture.Width), 
+                new(spawnPos.X, spawnPos.Y, arrowTexture.Width, 24), 
                 _bowCharge / 9f,
                 Team
             );
@@ -227,6 +254,19 @@ public class Player : Entity {
         }
         else {
             _potionCharge = 0;
+        }
+    }
+
+    private void tryVoid(GameTime gameTime) {
+        if (Keyboard.GetState().IsKeyDown(_keyInputs[(int) PlayerAction.Void])) {
+            _voidCharge += gameTime.GetElapsedSeconds();
+            if (_voidCharge >= VoidTime) {
+                _voidCharge = 0;
+                onDeath();
+            }
+        }
+        else {
+            _voidCharge = 0;
         }
     }
 

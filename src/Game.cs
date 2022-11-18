@@ -29,22 +29,17 @@ public class Game : Microsoft.Xna.Framework.Game {
     private SpriteBatch _spriteBatch;
     private OrthographicCamera _camera;
     private Vector2 _cameraVelocity;
-
-    private CollisionComponent _collisionComponent;
     private TiledWorld _tiledWorld;
     private EntityWorld _entityWorld;
 
-    public static Player Player { get; private set; }
-    private Hotbar _hotbar;
-    private HealthBar _healthBar;
+    public static Player Player1 { get; private set; }
+    public static Player Player2 { get; private set; }
 
     private SoundEffect[] _soundEffects;
     private ParticleEffect[] _blockParticleEffects;
 
     public static SoundEffect GetSoundEffect(SoundEffectID id) =>
         main._soundEffects[(int) id];
-
-    public static Hotbar Hotbar { get => main._hotbar; }
 
     public static int WindowWidth { get => main._graphics.PreferredBackBufferWidth; }
     public static int WindowHeight { get => main._graphics.PreferredBackBufferHeight; }
@@ -61,6 +56,10 @@ public class Game : Microsoft.Xna.Framework.Game {
         return tiledWorld[(int) (x / tileSize), (int) (y / tileSize)];
     }
 
+    public static void CheckTileCollisions(Entity entity) {
+        main._tiledWorld.CheckTileCollisions(entity);
+    }
+
     public static void SetTile(BlockType type, float x, float y) {
         TiledWorld tiledWorld = main._tiledWorld;
         int tileSize = tiledWorld.TileSize;
@@ -73,21 +72,9 @@ public class Game : Microsoft.Xna.Framework.Game {
         tiledWorld.SetTile(type, (int) (x / tileSize), (int) (y / tileSize));
     }
 
-    public static void AddCollider(ICollisionActor entity) =>
-        main._collisionComponent.Insert(entity);    
-
-    public static void RemoveCollider(ICollisionActor entity) =>
-        main._collisionComponent.Remove(entity);
-    
-    public static void AddEntity(Entity entity) {
-        main._entityWorld.Add(entity);
-        main._collisionComponent.Insert(entity);
-    }
-
-    public static void RemoveEntity(Entity entity) {
-        main._entityWorld.Remove(entity);
-        main._collisionComponent.Remove(entity);
-    }
+    public static void AddEntity(Entity entity) => main._entityWorld.Add(entity);
+    public static void RemoveEntity(Entity entity) => main._entityWorld.Remove(entity);
+    public static bool ContainsEntity(Entity entity) => main._entityWorld.Contains(entity);
 
     public static Vector2 ScreenToWorld(Vector2 position) => main._camera.ScreenToWorld(position.X, position.Y);
     public static Vector2 WorldToScreen(Vector2 position) => main._camera.WorldToScreen(position.X, position.Y);
@@ -123,26 +110,29 @@ public class Game : Microsoft.Xna.Framework.Game {
         _soundEffects[(int) SoundEffectID.BreakBlock] = Content.Load<SoundEffect>("breakblock");
         
 
-        _hotbar = new(Content.Load<Texture2D>("hotbar"));
-        _healthBar = new(
-            Content.Load<Texture2D>("healthbar"), 
-            Content.Load<Texture2D>("empty-healthbar"),
-            Content.Load<Texture2D>("golden-healthbar"));
-        Components.Add(new InputListenerComponent(this, _hotbar.CreateInputListeners()));
+        var hotbarTexture = Content.Load<Texture2D>("hotbar");
+        var fullTexture = Content.Load<Texture2D>("healthbar"); 
+        var emptyTexture = Content.Load<Texture2D>("empty-healthbar");
+        var bonusTexture = Content.Load<Texture2D>("golden-healthbar");
 
         var tileSet = new TileSet(Content.Load<Texture2D>("blocks"), 3, 2);
         _tiledWorld = new TiledWorld(GraphicsDevice, tileSet, 61, 27);
         _tiledWorld.LoadMap(Content, WorldType.Default);
 
-        _collisionComponent = new(new(0, 0, MapWidth, MapHeight));
-        _tiledWorld.InsertTiles(_collisionComponent);
-        
         Arrow.ArrowTexture = Content.Load<Texture2D>("arrow");
 
         var playerTexture = Content.Load<Texture2D>("player");
-        Player = new Player(playerTexture, new(WindowWidth / 2 - playerTexture.Width / 2, 100, playerTexture.Width, playerTexture.Height), Team.Red);
-        _entityWorld.Add(Player);
-        _collisionComponent.Insert(Player);
+        
+        var hotbar1 = new Hotbar(hotbarTexture, new(WindowWidth / 2 - hotbarTexture.Width / 2, 0));
+        var healthBar1 = new HealthBar(fullTexture, emptyTexture, bonusTexture, new(10, 10));
+        Components.Add(new InputListenerComponent(this, hotbar1.CreateInputListeners()));
+        Player1 = new Player(playerTexture, hotbar1, healthBar1, new(0, 0, playerTexture.Width, playerTexture.Height), Team.Blue);
+        AddEntity(Player1);
+        
+        var hotbar2 = new Hotbar(hotbarTexture, new(WindowWidth / 2 - hotbarTexture.Width / 2, WindowHeight - hotbarTexture.Height));
+        var healthBar2 = new HealthBar(fullTexture, emptyTexture, bonusTexture, new(WindowWidth - 10 - fullTexture.Width, 10));
+        var player2 = new Player(playerTexture, hotbar2, healthBar2, new(0, 0, playerTexture.Width, playerTexture.Height), Team.Red);
+        AddEntity(player2);
 
         _camera.LookAt(new(MapWidth / 2, MapHeight / 2));
 
@@ -193,7 +183,6 @@ public class Game : Microsoft.Xna.Framework.Game {
         base.Update(gameTime);
         _tiledWorld.Update(gameTime);
         _entityWorld.Update(gameTime);
-        _collisionComponent.Update(gameTime);
         foreach (var particleEffect in _blockParticleEffects) {
             particleEffect?.Update((float) gameTime.ElapsedGameTime.TotalSeconds);
         }
@@ -215,10 +204,10 @@ public class Game : Microsoft.Xna.Framework.Game {
         }
         _camera.Move(_cameraVelocity);
 
-        if (camRight - Player.Bounds.X <= sideBounds) {
+        if (camRight - Player1.Bounds.X <= sideBounds) {
             _cameraVelocity.X += Acceleration;
         }
-        else if (Player.Bounds.X - camLeft <= sideBounds) {
+        else if (Player1.Bounds.X - camLeft <= sideBounds) {
             _cameraVelocity.X -= Acceleration;
         }
         else if (_cameraVelocity.X > 0) {
