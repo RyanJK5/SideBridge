@@ -1,4 +1,6 @@
+using System;
 using MonoGame.Extended;
+using MonoGame.Extended.Input.InputListeners;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Input;
@@ -9,10 +11,13 @@ namespace SideBridge;
 public class Player : Entity {
 
     private const float MaximumVerticalVelocity = 15f;
+    private const float MaximumWalkingVelocity = 5f;
+    private const float MaximumHorizontalVelocity = 20f;
     private const float VerticalAcceleration = 1f;
-    private const float MaximumHorizontalVelocity = 5f;
     private const float HorizontalAcceleration = 1f;
 
+    private const float SwordDamge = 6f;
+    private const float SwordCriticalDamage = 7.5f;
     private const float TileReach = 3.5f;
     private const int TileSize = 40;
     private const int HeightLimit = 8;
@@ -29,9 +34,17 @@ public class Player : Entity {
     private float _potionCharge;
     private float _voidCharge;
 
-
     public float Health { get; private set; }
     private Keys[] _keyInputs;
+
+    public bool OnGround {
+        get => Bounds.Bottom < Game.MapHeight && Bounds.Bottom > 0 &&
+            Game.GetTile(Bounds.X, Bounds.Bottom).Type != BlockID.Air ||
+            Game.GetTile(Bounds.Right - 1, Bounds.Bottom).Type != BlockID.Air;
+    }
+
+    public bool Sprinting { get => Velocity.X != 0 && OnGround && _sprintKeyDown; }
+    private bool _sprintKeyDown;
 
     public readonly Team Team;
     public Vector2 SpawnPosition { 
@@ -52,6 +65,16 @@ public class Player : Entity {
         _hotbar = hotbar;
         _healthBar = healthBar;
         _healthBar.SetPlayer(this);
+
+        var mouseListener = new MouseListener();
+        mouseListener.MouseDown += tryUseSword;
+        var keyListener = new KeyboardListener();
+        keyListener.KeyPressed += (sender, args) => {
+            if (args.Key == _keyInputs[(int) PlayerAction.Sprint]) {
+                _sprintKeyDown = !Sprinting;
+            }
+        };
+        Game.AddListeners(mouseListener, keyListener);
 
         Health = 20;
         Team = team;
@@ -93,7 +116,16 @@ public class Player : Entity {
 
     public override void Draw(SpriteBatch spriteBatch) {
         base.Draw(spriteBatch);
-        
+        Vector2 mousePos = Game.ScreenToWorld(Mouse.GetState().Position.ToVector2());
+        if (_hotbar.ActiveSlot == 0) {
+            Vector2 center = Bounds.Center;
+            Vector2 vecLine = mousePos - center;
+            vecLine.Normalize();
+            vecLine *= TileReach * TileSize;
+            
+            spriteBatch.DrawLine(center.X, center.Y, center.X + vecLine.X, center.Y + vecLine.Y, Color.GhostWhite * 0.5f, 20f);
+        }
+
         if (_potionCharge > 0) {
             var barBounds = new RectangleF(Bounds.X - 2, Bounds.Y - 10, Bounds.Width + 4, 6);
             spriteBatch.FillRectangle(barBounds, Color.DarkRed);
@@ -109,7 +141,6 @@ public class Player : Entity {
             return;
         }
 
-        var mousePos = Game.ScreenToWorld(Mouse.GetState().Position.ToVector2());
         var playerPos = Bounds.Center;
         var vec = new Vector2(mousePos.X, mousePos.Y) - (Vector2) Bounds.Center;
         vec.Normalize();
@@ -117,15 +148,11 @@ public class Player : Entity {
         vec.Y *= _bowCharge;
 
         var pos = new Vector2(playerPos.X, playerPos.Y);
-        var nextPos = new Vector2(pos.X + (vec.X + VerticalAcceleration) / 2, pos.Y + (vec.Y + VerticalAcceleration) / 2);
-        for (int i = 0; i < 10; i++) {
-            spriteBatch.DrawLine(pos.X, pos.Y, nextPos.X, nextPos.Y, Color.White, 4);
-
+        for (int i = 0; i < 20; i++) {
             pos.X += vec.X;
             pos.Y += vec.Y;
             vec.Y += VerticalAcceleration;
-            nextPos.X += vec.X;
-            nextPos.Y += vec.Y;
+            spriteBatch.DrawCircle(pos, 5, 100, Color.White, 10f);
         }
     }
 
@@ -134,6 +161,17 @@ public class Player : Entity {
         if (Health <= 0) {
             onDeath();
         }
+    }
+
+    public void RegisterSwordKnockback(Player player) {
+        Vector2 knockback = new Vector2(player.Bounds.Center.X < Bounds.Center.X ? 5f : -5f, -8f);
+        if (player.Sprinting) {
+            knockback.X *= 1.5f;
+        }
+        if (!OnGround) {
+            knockback.X *= 2f;
+        }
+        Velocity = knockback;
     }
 
     private void onDeath() {
@@ -159,6 +197,7 @@ public class Player : Entity {
             _potionCharge = 0;
         }
 
+
         switch (_hotbar.ActiveSlot) {
             case 1:
                 tryShootBow(gameTime);
@@ -177,13 +216,41 @@ public class Player : Entity {
         if (_bowCharge > 1 || _potionCharge > 0 || _voidCharge > 0) {
             Bounds.X += Velocity.X / 4;
         }
-        else if (Keyboard.GetState().IsKeyDown(_keyInputs[(int) PlayerAction.Sprint])) {
+        else if (OnGround && Sprinting) {
             Bounds.X += Velocity.X * 1.5f;
         }
         else {
             Bounds.X += Velocity.X;
         }
         Bounds.Y += Velocity.Y;
+    }
+
+    private void tryUseSword(object sender, MouseEventArgs args) {
+        if (_hotbar.ActiveSlot != 0) {
+            return;
+        }
+        Vector2 mousePos = Game.ScreenToWorld(args.Position.ToVector2());
+        Vector2 vecLine = mousePos - (Vector2) Bounds.Center;
+        vecLine.Normalize();
+        vecLine *= TileReach * TileSize;
+
+        var player = Game.FindEntity<Player>(entity => entity != this && findIntersection(entity.Bounds).intersects);
+        if (player != null) {
+            
+            Tile[] tiles = Game.FindTiles(tile => findIntersection(tile.Bounds).intersects && tile.Type != BlockID.Air);
+            foreach (var tile in tiles) {
+                if (findIntersection(tile.Bounds).distanceAlongLine < findIntersection(player.Bounds).distanceAlongLine) {
+                    return;
+                }
+            }
+            player.RegisterSwordKnockback(this);
+            player.RegisterDamage(OnGround ? SwordDamge : SwordCriticalDamage);
+        }
+        
+        (bool intersects, float distanceAlongLine) findIntersection(RectangleF bounds) {
+            bool result1 = bounds.IntersectsLine(Bounds.Center, Bounds.Center + vecLine, out var result2);
+            return (result1, Vector2.Distance(Bounds.Center, result2));
+        }
     }
 
     private void tryShootBow(GameTime gameTime) {
@@ -315,18 +382,18 @@ public class Player : Entity {
         bool leftDown = Keyboard.GetState().IsKeyDown(_keyInputs[(int) PlayerAction.Left]);
         bool rightDown = Keyboard.GetState().IsKeyDown(_keyInputs[(int) PlayerAction.Right]);
         if (leftDown && !(rightDown && Velocity.X <= 0)) {
-            updateVelocity(-HorizontalAcceleration, 0);
+            updateVelocity(-HorizontalAcceleration, 0, MaximumWalkingVelocity, MaximumVerticalVelocity);
         }
-        else if (!leftDown && Velocity.X <= 0) {
+        else if (!leftDown && Velocity.X <= 0 && OnGround) {
             updateVelocity(HorizontalAcceleration, 0, 0, MaximumVerticalVelocity);
         }
         if (rightDown && !(leftDown && Velocity.X >= 0)) {
-            updateVelocity(HorizontalAcceleration, 0);
+            updateVelocity(HorizontalAcceleration, 0, MaximumWalkingVelocity, MaximumVerticalVelocity);
         }
-        else if (!rightDown && Velocity.X >= 0) {
+        else if (!rightDown && Velocity.X >= 0 && OnGround) {
             updateVelocity(-HorizontalAcceleration, 0, 0, MaximumVerticalVelocity);
         }
-        if (!leftDown && !rightDown && Velocity.X != 0) {
+        if (!leftDown && !rightDown && Velocity.X != 0 && OnGround) {
             if (Velocity.X < 0) {
                 updateVelocity(HorizontalAcceleration, 0, 0, MaximumVerticalVelocity);
             }
@@ -337,10 +404,7 @@ public class Player : Entity {
     }
 
     private void setVerticalVelocity() {
-        if  (Bounds.Bottom < Game.MapHeight && Bounds.Bottom > 0 && (
-            Game.GetTile(Bounds.X, Bounds.Bottom).Type != BlockID.Air ||
-            Game.GetTile(Bounds.Right - 1, Bounds.Bottom).Type != BlockID.Air
-            )) {
+        if  (OnGround) {
             if (Keyboard.GetState().IsKeyDown(_keyInputs[(int) PlayerAction.Jump])) {
                 Velocity.Y = -11f;
             }

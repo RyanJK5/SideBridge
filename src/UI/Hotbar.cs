@@ -17,7 +17,7 @@ public class Hotbar : UI {
     public override void Draw(SpriteBatch spriteBatch) {
         spriteBatch.Draw(Texture, DrawPos, Color.White);
 
-        var offset = (DrawPos.Y + Texture.Height > Game.WindowWidth) ? -Texture.Height : Texture.Height;
+        var offset = (DrawPos.Y + Texture.Height >= Game.WindowHeight) ? -5 : Texture.Height;
         spriteBatch.DrawPercentageBar(new RectangleF(DrawPos.X, DrawPos.Y + offset, Texture.Width, 5), 
             Game.Player1.TimeSinceBowShot / Player.ArrowCooldown);
         spriteBatch.FillRectangle(new RectangleF(DrawPos.X + ActiveSlot * SlotSize, DrawPos.Y, SlotSize, SlotSize), Color.White * 0.5f);

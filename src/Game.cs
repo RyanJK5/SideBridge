@@ -4,12 +4,10 @@ using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
 using MonoGame.Extended.Particles;
 using MonoGame.Extended.Particles.Modifiers;
-using MonoGame.Extended.Particles.Modifiers.Containers;
 using MonoGame.Extended.Particles.Modifiers.Interpolators;
 using MonoGame.Extended.Particles.Profiles;
 using MonoGame.Extended.TextureAtlases;
 using MonoGame.Extended.Input.InputListeners;
-using MonoGame.Extended.Collisions;
 using MonoGame.Extended.ViewportAdapters;
 using System.Collections.Generic;
 
@@ -17,12 +15,12 @@ namespace SideBridge;
 
 public class Game : Microsoft.Xna.Framework.Game {
 
-    private static Game main;
+    private static Game s_main;
 
     private static void Main() {
-        main = new();
-        using var game = main;
-        main.Run();
+        s_main = new();
+        using var game = s_main;
+        s_main.Run();
     }
 
     private GraphicsDeviceManager _graphics;
@@ -39,16 +37,16 @@ public class Game : Microsoft.Xna.Framework.Game {
     private ParticleEffect[] _blockParticleEffects;
 
     public static SoundEffect GetSoundEffect(SoundEffectID id) =>
-        main._soundEffects[(int) id];
+        s_main._soundEffects[(int) id];
 
-    public static int WindowWidth { get => main._graphics.PreferredBackBufferWidth; }
-    public static int WindowHeight { get => main._graphics.PreferredBackBufferHeight; }
+    public static int WindowWidth { get => s_main._graphics.PreferredBackBufferWidth; }
+    public static int WindowHeight { get => s_main._graphics.PreferredBackBufferHeight; }
 
-    public static float MapWidth { get => main._tiledWorld.WidthInPixels; }
-    public static float MapHeight { get => main._tiledWorld.HeightInPixels; }
+    public static float MapWidth { get => s_main._tiledWorld.WidthInPixels; }
+    public static float MapHeight { get => s_main._tiledWorld.HeightInPixels; }
 
     public static Tile GetTile(float x, float y) {
-        TiledWorld tiledWorld = main._tiledWorld;
+        TiledWorld tiledWorld = s_main._tiledWorld;
         int tileSize = tiledWorld.TileSize;
         if (x > MapWidth || x < 0 || y > MapHeight || y < 0) {
             return new Tile(BlockID.Air, new((int) (x / tileSize) * tileSize, (int) (y / tileSize) * tileSize, tileSize, tileSize));
@@ -57,29 +55,39 @@ public class Game : Microsoft.Xna.Framework.Game {
     }
 
     public static void CheckTileCollisions(Entity entity) {
-        main._tiledWorld.CheckTileCollisions(entity);
+        s_main._tiledWorld.CheckTileCollisions(entity);
     }
 
     public static void SetTile(BlockID type, float x, float y) {
-        TiledWorld tiledWorld = main._tiledWorld;
+        TiledWorld tiledWorld = s_main._tiledWorld;
         int tileSize = tiledWorld.TileSize;
         if (type != BlockID.Air) {
-            main._soundEffects[0].Play();
+            s_main._soundEffects[0].Play();
         }
         else {
-            main._blockParticleEffects[(int) GetTile(x, y).Type].Trigger(WorldToScreen(new Vector2(x + tileSize / 2, y + tileSize / 2)));
+            s_main._blockParticleEffects[(int) GetTile(x, y).Type].Trigger(WorldToScreen(new Vector2(x + tileSize / 2, y + tileSize / 2)));
         }
         tiledWorld.SetTile(type, (int) (x / tileSize), (int) (y / tileSize));
     }
 
-    public static void AddEntity(Entity entity) => main._entityWorld.Add(entity);
-    public static void RemoveEntity(Entity entity) => main._entityWorld.Remove(entity);
-    public static bool ContainsEntity(Entity entity) => main._entityWorld.Contains(entity);
+    public static void AddEntity(Entity entity) => s_main._entityWorld.Add(entity);
+    public static void RemoveEntity(Entity entity) => s_main._entityWorld.Remove(entity);
+    public static bool ContainsEntity(Entity entity) => s_main._entityWorld.Contains(entity);
 
-    public static Vector2 ScreenToWorld(Vector2 position) => main._camera.ScreenToWorld(position.X, position.Y);
-    public static Vector2 WorldToScreen(Vector2 position) => main._camera.WorldToScreen(position.X, position.Y);
+    #nullable enable
+    public static T? FindEntity<T>(System.Predicate<T> testCase) => s_main._entityWorld.FindEntity(testCase);
 
-    public static Matrix GetViewMatrix() => main._camera.GetViewMatrix();
+    public static Tile[] FindTiles(System.Predicate<Tile> testCase) => s_main._tiledWorld.FindTiles(testCase);
+    #nullable disable
+
+    public static Vector2 ScreenToWorld(Vector2 position) => s_main._camera.ScreenToWorld(position.X, position.Y);
+    public static Vector2 WorldToScreen(Vector2 position) => s_main._camera.WorldToScreen(position.X, position.Y);
+
+    public static void AddListeners(params InputListener[] listeners) {
+        s_main.Components.Add(new InputListenerComponent(s_main, listeners));
+    }
+
+    public static Matrix GetViewMatrix() => s_main._camera.GetViewMatrix();
 
     private Game() {
         _graphics = new GraphicsDeviceManager(this);
@@ -131,6 +139,7 @@ public class Game : Microsoft.Xna.Framework.Game {
         
         var hotbar2 = new Hotbar(hotbarTexture, new(WindowWidth / 2 - hotbarTexture.Width / 2, WindowHeight - hotbarTexture.Height));
         var healthBar2 = new HealthBar(fullTexture, emptyTexture, bonusTexture, new(WindowWidth - 10 - fullTexture.Width, 10));
+        Components.Add(new InputListenerComponent(this, hotbar2.CreateInputListeners()));
         var player2 = new Player(playerTexture, hotbar2, healthBar2, new(0, 0, playerTexture.Width, playerTexture.Height), Team.Red);
         AddEntity(player2);
 

@@ -1,9 +1,12 @@
+using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended.Collections;
 using MonoGame.Extended;
 
 namespace SideBridge;
+
+#nullable enable
 
 public class EntityWorld : SimpleDrawableGameComponent {
 
@@ -46,4 +49,12 @@ public class EntityWorld : SimpleDrawableGameComponent {
     public void Remove(Entity entity) => s_entities.Remove(entity);
     public bool Contains(Entity entity) => s_entities.Contains(entity);
 
+    public T? FindEntity<T>(Predicate<T> testCase) {
+        foreach (Entity entity in s_entities) {
+            if (entity is T result && testCase.Invoke(result)) {
+                return result;
+            }
+        }
+        return default(T);
+    }
 }

@@ -4,11 +4,10 @@ using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
 using MonoGame.Extended.Tiled;
-using MonoGame.Extended.Collisions;
-using System;
 
 namespace SideBridge;
 
+#nullable enable
 public class TiledWorld : SimpleDrawableGameComponent {
     private readonly TileSet _tileSet;
     private readonly SpriteBatch _spriteBatch;
@@ -90,24 +89,30 @@ public class TiledWorld : SimpleDrawableGameComponent {
 
     public Tile this[int x, int y] {
         get {
-            pushInBounds(ref x, ref y);
+            if (x < 0) {
+                x = 0;
+            }
+            if (x >= Width) {
+                x = Width - 1;
+            }
+            if (y < 0) {
+                y = 0;
+            }
+            if (y >= Height) {
+                y = Height - 1;
+            }
             return _tileGrid[x + Width * y];
         }
     }
 
-    private void pushInBounds(ref int x, ref int y) {
-        if (x < 0) {
-            x = 0;
+    public Tile[] FindTiles(System.Predicate<Tile> testCase) {
+        System.Collections.Generic.List<Tile> result = new();
+        foreach (var tile in _tileGrid) {
+            if (testCase.Invoke(tile)) {
+                result.Add(tile);
+            }
         }
-        if (x > Width) {
-            x = Width;
-        }
-        if (y < 0) {
-            y = 0;
-        }
-        if (y > Height) {
-            y = Height;
-        }
+        return result.ToArray();
     }
 
     public void SetTile(BlockID type, int x, int y) {
