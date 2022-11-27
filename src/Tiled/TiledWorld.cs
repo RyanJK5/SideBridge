@@ -77,11 +77,11 @@ public class TiledWorld : SimpleDrawableGameComponent {
         Tile[] possibleCollisions = {
             this[(int) (bounds.Left / tileSize), (int) (bounds.Top / tileSize)],
             this[(int) (bounds.Right / tileSize), (int) (bounds.Top / tileSize)],
-            this[(int) (bounds.Left / tileSize), (int) (bounds.Top / tileSize)],
-            this[(int) (bounds.Left / tileSize), (int) (bounds.Bottom / tileSize)]
+            this[(int) (bounds.Left / tileSize), (int) (bounds.Bottom / tileSize)],
+            this[(int) (bounds.Right / tileSize), (int) (bounds.Bottom / tileSize)]
         };
         foreach (Tile tile in possibleCollisions) {
-            if (tile.Type != BlockID.Air && tile.Bounds.Intersects(tile.Bounds)) {
+            if (tile.Type != BlockID.Air && tile.Bounds.Intersects(bounds)) {
                 entity.OnTileCollision(tile);
             }
         }
@@ -116,6 +116,9 @@ public class TiledWorld : SimpleDrawableGameComponent {
     }
 
     public void SetTile(BlockID type, int x, int y) {
+        if (x < 0 || y < 0 || x >= Width || y >= Height) {
+            return;
+        }
         int tileSize = _tileSet.TileSize;
         var tile = new Tile(type, new(x * tileSize, y * tileSize, tileSize, tileSize));
         var oldTile = _tileGrid[x + Width * y]; 
@@ -126,7 +129,7 @@ public class TiledWorld : SimpleDrawableGameComponent {
         var tiledMap = content.Load<TiledMap>("map" + (int) type);
         var tiledMapTiles = tiledMap.TileLayers[0].Tiles;
         var tileSize = _tileSet.TileSize;
-        for (var i = 0; i < tiledMapTiles.Length; i++) {
+        for (var i = 0; i < _tileGrid.Length; i++) {
             var tiledMapTile = tiledMapTiles[i];
             var tile = new Tile((BlockID) tiledMapTile.GlobalIdentifier, 
                 new(tiledMapTile.X * tileSize, tiledMapTile.Y * tileSize, tileSize, tileSize));

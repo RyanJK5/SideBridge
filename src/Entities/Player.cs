@@ -45,6 +45,7 @@ public class Player : Entity {
 
     public bool Sprinting { get => Velocity.X != 0 && OnGround && _sprintKeyDown; }
     private bool _sprintKeyDown;
+    private bool _sprintHit;
 
     public readonly Team Team;
     public Vector2 SpawnPosition { 
@@ -72,6 +73,9 @@ public class Player : Entity {
         keyListener.KeyPressed += (sender, args) => {
             if (args.Key == _keyInputs[(int) PlayerAction.Sprint]) {
                 _sprintKeyDown = !Sprinting;
+                if (!_sprintKeyDown) {
+                    _sprintHit = false;
+                }
             }
         };
         Game.AddListeners(mouseListener, keyListener);
@@ -94,7 +98,7 @@ public class Player : Entity {
 
         var adj = Bounds.Width / otherBounds.Height;
         var adj2 = otherBounds.Height / Bounds.Width;
-        if (intersection.Height * adj2 > intersection.Width) {
+        if (intersection.Height > intersection.Width) {
             if (Bounds.X < otherBounds.Position.X) {
                 Bounds.X -= intersection.Width;
             }
@@ -165,8 +169,9 @@ public class Player : Entity {
 
     public void RegisterSwordKnockback(Player player) {
         Vector2 knockback = new Vector2(player.Bounds.Center.X < Bounds.Center.X ? 5f : -5f, -8f);
-        if (player.Sprinting) {
+        if (player.Sprinting && !player._sprintHit) {
             knockback.X *= 1.5f;
+            player._sprintHit = true;
         }
         if (!OnGround) {
             knockback.X *= 2f;
@@ -203,7 +208,7 @@ public class Player : Entity {
                 tryShootBow(gameTime);
                 break;
             case 2:
-                tryBlockPlacement(gameTime);
+                tryPlaceBlock(gameTime);
                 break;
             case 3:
                 tryDrinkPotion(gameTime);
@@ -236,7 +241,6 @@ public class Player : Entity {
 
         var player = Game.FindEntity<Player>(entity => entity != this && findIntersection(entity.Bounds).intersects);
         if (player != null) {
-            
             Tile[] tiles = Game.FindTiles(tile => findIntersection(tile.Bounds).intersects && tile.Type != BlockID.Air);
             foreach (var tile in tiles) {
                 if (findIntersection(tile.Bounds).distanceAlongLine < findIntersection(player.Bounds).distanceAlongLine) {
@@ -290,7 +294,7 @@ public class Player : Entity {
         }
     }
 
-    private void tryBlockPlacement(GameTime gameTime) {
+    private void tryPlaceBlock(GameTime gameTime) {
         Vector2 mousePos = Game.ScreenToWorld(Mouse.GetState().Position.ToVector2());
         var tileX = (int) (mousePos.X / TileSize) * TileSize;
         var tileY = (int) (mousePos.Y / TileSize) * TileSize;
@@ -338,8 +342,8 @@ public class Player : Entity {
     }
 
     private void placeTile(float tileX, float tileY, Vector2 mousePos) {
-        if (new RectangleF(tileX, tileY, TileSize, TileSize).Intersects(Bounds)) {
-                return;
+        if (Game.FindEntity<Player>(player => player.Bounds.Intersects(new(tileX, tileY, TileSize, TileSize))) != null) {
+            return;
         }
         Vector2[] adjacentTiles = {
             new(-TileSize, 0),

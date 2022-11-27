@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using System;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
@@ -26,9 +27,9 @@ public class Game : Microsoft.Xna.Framework.Game {
     private GraphicsDeviceManager _graphics;
     private SpriteBatch _spriteBatch;
     private OrthographicCamera _camera;
-    private Vector2 _cameraVelocity;
     private TiledWorld _tiledWorld;
     private EntityWorld _entityWorld;
+    private ScoreBar _scoreBar;
 
     public static Player Player1 { get; private set; }
     public static Player Player2 { get; private set; }
@@ -95,6 +96,8 @@ public class Game : Microsoft.Xna.Framework.Game {
 
         var viewportAdapter = new BoxingViewportAdapter(Window, GraphicsDevice, 1920, 1080);
         _camera = new(viewportAdapter);
+        _camera.MinimumZoom = 0.75f;
+        _camera.MaximumZoom = 1.178f;
 
         Content.RootDirectory = "Content";
         IsMouseVisible = true;
@@ -119,9 +122,9 @@ public class Game : Microsoft.Xna.Framework.Game {
         
 
         var hotbarTexture = Content.Load<Texture2D>("hotbar");
-        var fullTexture = Content.Load<Texture2D>("healthbar"); 
-        var emptyTexture = Content.Load<Texture2D>("empty-healthbar");
-        var bonusTexture = Content.Load<Texture2D>("golden-healthbar");
+        var fullTexture = Content.Load<Texture2D>("healthbar-full"); 
+        var emptyTexture = Content.Load<Texture2D>("healthbar-empty");
+        var bonusTexture = Content.Load<Texture2D>("healthbar-golden");
 
         var tileSet = new TileSet(Content.Load<Texture2D>("blocks"), 3, 2);
         _tiledWorld = new TiledWorld(GraphicsDevice, tileSet, 61, 27);
@@ -129,19 +132,25 @@ public class Game : Microsoft.Xna.Framework.Game {
 
         Arrow.ArrowTexture = Content.Load<Texture2D>("arrow");
 
+
         var playerTexture = Content.Load<Texture2D>("player");
         
-        var hotbar1 = new Hotbar(hotbarTexture, new(WindowWidth / 2 - hotbarTexture.Width / 2, 0));
+        var hotbarDrawPos = new Vector2(WindowWidth / 2 - hotbarTexture.Width / 2, 0);
+        var hotbar1 = new Hotbar(hotbarTexture, hotbarDrawPos);
         var healthBar1 = new HealthBar(fullTexture, emptyTexture, bonusTexture, new(10, 10));
         Components.Add(new InputListenerComponent(this, hotbar1.CreateInputListeners()));
         Player1 = new Player(playerTexture, hotbar1, healthBar1, new(0, 0, playerTexture.Width, playerTexture.Height), Team.Blue);
         AddEntity(Player1);
+
         
         var hotbar2 = new Hotbar(hotbarTexture, new(WindowWidth / 2 - hotbarTexture.Width / 2, WindowHeight - hotbarTexture.Height));
         var healthBar2 = new HealthBar(fullTexture, emptyTexture, bonusTexture, new(WindowWidth - 10 - fullTexture.Width, 10));
         Components.Add(new InputListenerComponent(this, hotbar2.CreateInputListeners()));
-        var player2 = new Player(playerTexture, hotbar2, healthBar2, new(0, 0, playerTexture.Width, playerTexture.Height), Team.Red);
-        AddEntity(player2);
+        Player2 = new Player(playerTexture, hotbar2, healthBar2, new(0, 0, playerTexture.Width, playerTexture.Height), Team.Red);
+        AddEntity(Player2);
+
+        _scoreBar = new ScoreBar(Content.Load<Texture2D>("scorebar-full"), Content.Load<Texture2D>("scorebar-empty"), 
+            new(hotbarDrawPos.X, hotbarDrawPos.Y + hotbarTexture.Height + 5));
 
         _camera.LookAt(new(MapWidth / 2, MapHeight / 2));
 
@@ -197,46 +206,29 @@ public class Game : Microsoft.Xna.Framework.Game {
         }
     }
 
+    // TODO fix camera going wacky when someone dies
     private void updateCamera() {
-        const float Acceleration = 0.2f;
-        const float MaxVelocity = 7.5f;
-        float sideBounds = 500 / _camera.Zoom;
+        var sideBounds = 100f / _camera.Zoom;
+        var camTop = _camera.Center.Y - WindowHeight / _camera.Zoom / 2f;
+        var camBottom = _camera.Center.Y + WindowHeight / _camera.Zoom / 2f;
 
-        var camRight = _camera.Center.X + WindowWidth / _camera.Zoom / 2;
-        var camLeft = _camera.Center.X - WindowWidth / _camera.Zoom / 2;
-        
-        if (camRight > MapWidth) {
-            _camera.Move(new(MapWidth - camRight, 0));
-        }
-        else if (camLeft < 0) {
-            _camera.Move(new(-camLeft, 0));
-        }
-        _camera.Move(_cameraVelocity);
+        var p1 = Player1.Bounds;
+        var p2 = Player2.Bounds;
 
-        if (camRight - Player1.Bounds.X <= sideBounds) {
-            _cameraVelocity.X += Acceleration;
+        var oldCameraY = _camera.Center.Y;
+        var cameraY = oldCameraY;
+        if ((p1.Y == p2.Y && oldCameraY != p1.Y) 
+            || MathF.Max(p1.Y, p2.Y) > camBottom
+            || MathF.Min(p1.Y, p2.Y) < camTop) {
+            cameraY = oldCameraY + (oldCameraY < p1.Y ? 1 : -1);
         }
-        else if (Player1.Bounds.X - camLeft <= sideBounds) {
-            _cameraVelocity.X -= Acceleration;
+        _camera.LookAt(new((p1.X + p2.Right) / 2, oldCameraY));
+
+        var zoom = WindowWidth / (MathF.Abs(p1.X - p2.Right) + sideBounds * 2f);
+        if (zoom < _camera.MinimumZoom || zoom > _camera.MaximumZoom) {
+            return;
         }
-        else if (_cameraVelocity.X > 0) {
-            _cameraVelocity.X -= Acceleration;
-            if (_cameraVelocity.X < 0) {
-                _cameraVelocity.X = 0;
-            }
-        }
-        else if (_cameraVelocity.X < 0) {
-            _cameraVelocity.X += Acceleration;
-            if (_cameraVelocity.X > 0) {
-                _cameraVelocity.X = 0;
-            }
-        }
-        if (_cameraVelocity.X > MaxVelocity) {
-            _cameraVelocity.X = MaxVelocity;
-        }
-        else if (_cameraVelocity.X < -MaxVelocity) {
-            _cameraVelocity.X = -MaxVelocity;
-        }
+        _camera.Zoom = zoom;
     }
 
     protected override void Draw(GameTime gameTime) {
