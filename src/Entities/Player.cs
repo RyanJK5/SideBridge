@@ -88,6 +88,7 @@ public class Player : Entity {
     public override void OnCollision(Entity other) {
         if (other is Arrow arrow && arrow.PlayerTeam != Team && Game.ContainsEntity(arrow)) {
             RegisterDamage(arrow.Damage);
+            registerArrowKnockback(arrow);
             Game.RemoveEntity(arrow);
         }
     }
@@ -176,7 +177,13 @@ public class Player : Entity {
         }
     }
 
-    public void RegisterSwordKnockback(Player player) {
+    private void registerArrowKnockback(Arrow arrow) {
+        Velocity = arrow.Velocity / 5f;
+        Velocity.Y = -2f;
+        _sprintKeyDown = false;
+    }
+
+    private void registerSwordKnockback(Player player) {
         Vector2 knockback = new Vector2(player.Bounds.Center.X < Bounds.Center.X ? 5f : -5f, -8f);
         if (player.Sprinting && !player._sprintHit) {
             knockback.X *= 1.5f;
@@ -256,7 +263,7 @@ public class Player : Entity {
                     return;
                 }
             }
-            player.RegisterSwordKnockback(this);
+            player.registerSwordKnockback(this);
             player.RegisterDamage(OnGround ? SwordDamge : SwordCriticalDamage);
         }
         
