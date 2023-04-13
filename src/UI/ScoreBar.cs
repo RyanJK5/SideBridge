@@ -1,30 +1,74 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using MonoGame.Extended;
 
 namespace SideBridge;
 
 public class ScoreBar : UI {
 
-    private const int TimerWidth = 48;
+    private const int TimerWidth = 58;
+    private const int GameLength = 60 * 15;
 
-    public int RedScore = 2;
-    public int BlueScore = 3;
+    public int RedScore { 
+        get => _redScore; 
+        set {
+            if (value <= 5) {
+                _redScore = value;
+            }
+        }
+    }
+    private int _redScore;
+
+    public int BlueScore { 
+        get => _blueScore; 
+        set {
+            if (value <= 5) {
+                _blueScore = value;
+            }
+        }
+    }
+    private int _blueScore;
 
     public int CellWidth { get => (Texture.Width - TimerWidth) / 10; }
 
+    public string StringTime { 
+        get => (int) (_elapsedTime / 60) + ":" + ((int) (_elapsedTime % 60) < 10 ? "0" : "") + (int) (_elapsedTime % 60);
+    }
+
+    private float _elapsedTime;
     private readonly Texture2D _emptyTexture;
 
     public ScoreBar(Texture2D fullTexture, Texture2D emptyTexture, Vector2 drawPos) : base(fullTexture, drawPos) {
         _emptyTexture = emptyTexture;
+        _elapsedTime = GameLength;
+    }
+
+    public override void Update(GameTime gameTime) {
+        if (_elapsedTime <= 0) {
+            _elapsedTime = 0;
+            return;
+        }
+        _elapsedTime -= gameTime.GetElapsedSeconds();
     }
 
     public override void Draw(SpriteBatch spriteBatch) {
         spriteBatch.Draw(_emptyTexture, DrawPos, Color.White);
-        if (RedScore > 0) {
+        
+        Vector2 strDimensions = Game.Font.MeasureString(StringTime);
+        const int xAdj = 1;
+        const int yAdj = -2;
+        spriteBatch.DrawString(
+            Game.Font, 
+            StringTime, 
+            new(DrawPos.X + Texture.Width / 2 - strDimensions.X / 2 + xAdj, DrawPos.Y + Texture.Height / 2 - strDimensions.Y / 2 + yAdj), 
+            Color.White
+
+        );
+        if (BlueScore > 0) {
             spriteBatch.Draw(
                 Texture,
                 DrawPos,
-                new Rectangle(0, 0, (int) (CellWidth * RedScore) + 1, Texture.Height),
+                new Rectangle(0, 0, (int) (CellWidth * BlueScore) + 1, Texture.Height),
                 Color.White,
                 0f,
                 Vector2.Zero,
@@ -33,8 +77,8 @@ public class ScoreBar : UI {
                 0f
             );
         }
-        if (BlueScore > 0) {
-            var scoreWidth = (int) (CellWidth * (5 - BlueScore));
+        if (RedScore > 0) {
+            var scoreWidth = (int) (CellWidth * (5 - RedScore));
             var scoreX = Texture.Width / 2 + TimerWidth / 2 + scoreWidth;
             spriteBatch.Draw(
                 Texture,

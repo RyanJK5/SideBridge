@@ -19,9 +19,17 @@ public abstract class UI {
 
     public abstract void Draw(SpriteBatch spriteBatch);
 
+    public virtual void Update(GameTime gameTime) {}
+
     public static void DrawUI(SpriteBatch spriteBatch) {
         foreach (var ui in s_allUI) {
             ui.Draw(spriteBatch);
+        }
+    }
+
+    public static void UpdateUI(GameTime gameTime) {
+        foreach (var ui in s_allUI) {
+            ui.Update(gameTime);
         }
     }
 }

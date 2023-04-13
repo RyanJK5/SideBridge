@@ -40,6 +40,8 @@ public class Game : Microsoft.Xna.Framework.Game {
     public static SoundEffect GetSoundEffect(SoundEffectID id) =>
         s_main._soundEffects[(int) id];
 
+    public static SpriteFont Font { get; private set; }
+
     public static int WindowWidth { get => s_main._graphics.PreferredBackBufferWidth; }
     public static int WindowHeight { get => s_main._graphics.PreferredBackBufferHeight; }
 
@@ -50,7 +52,7 @@ public class Game : Microsoft.Xna.Framework.Game {
         TiledWorld tiledWorld = s_main._tiledWorld;
         int tileSize = tiledWorld.TileSize;
         if (x > MapWidth || x < 0 || y > MapHeight || y < 0) {
-            return new Tile(BlockID.Air, new((int) (x / tileSize) * tileSize, (int) (y / tileSize) * tileSize, tileSize, tileSize));
+            return new Tile(TileType.Air, new((int) (x / tileSize) * tileSize, (int) (y / tileSize) * tileSize, tileSize, tileSize));
         }
         return tiledWorld[(int) (x / tileSize), (int) (y / tileSize)];
     }
@@ -59,16 +61,21 @@ public class Game : Microsoft.Xna.Framework.Game {
         s_main._tiledWorld.CheckTileCollisions(entity);
     }
 
-    public static void SetTile(BlockID type, float x, float y) {
+    public static void SetTile(TileType type, float x, float y) {
         TiledWorld tiledWorld = s_main._tiledWorld;
         int tileSize = tiledWorld.TileSize;
-        if (type != BlockID.Air) {
+        int intX = (int) (x / tileSize);
+        int intY = (int) (y / tileSize);
+        if (intX < 0 || intY < 0 || intX >= tiledWorld.Width || intY >= tiledWorld.Height) {
+            return;
+        }
+        if (type != TileType.Air) {
             s_main._soundEffects[0].Play();
         }
         else {
             s_main._blockParticleEffects[(int) GetTile(x, y).Type].Trigger(WorldToScreen(new Vector2(x + tileSize / 2, y + tileSize / 2)));
         }
-        tiledWorld.SetTile(type, (int) (x / tileSize), (int) (y / tileSize));
+        tiledWorld.SetTile(type, intX, intY);
     }
 
     public static void AddEntity(Entity entity) => s_main._entityWorld.Add(entity);
@@ -90,6 +97,24 @@ public class Game : Microsoft.Xna.Framework.Game {
 
     public static Matrix GetViewMatrix() => s_main._camera.GetViewMatrix();
 
+    public static void ScoreGoal(Player player) {
+        if (player == Player1) {
+            s_main._scoreBar.BlueScore++;
+            return;
+        }
+        s_main._scoreBar.RedScore++;
+    }
+
+    public static Team GetGoalTeam(Tile goal) {
+        if (goal.Type != TileType.Goal) {
+            throw new ArgumentException();
+        }
+        return goal.Bounds.X > s_main._tiledWorld.WidthInPixels / 2 ? Team.Red : Team.Blue;
+    }
+
+    public static Player GetOtherPlayer(Team thisTeam) =>
+        thisTeam == Team.Red ? Player1 : Player2;
+
     private Game() {
         _graphics = new GraphicsDeviceManager(this);
         _graphics.ToggleFullScreen();
@@ -103,7 +128,6 @@ public class Game : Microsoft.Xna.Framework.Game {
         IsMouseVisible = true;
     }
 
-
     protected override void Initialize() {
         _graphics.PreferredBackBufferWidth = 1920;
         _graphics.PreferredBackBufferHeight = 1080;
@@ -115,11 +139,11 @@ public class Game : Microsoft.Xna.Framework.Game {
 
     protected override void LoadContent() {
         _spriteBatch = new(GraphicsDevice);
-
         
         _soundEffects[(int) SoundEffectID.PlaceBlock] = Content.Load<SoundEffect>("placeblock");
         _soundEffects[(int) SoundEffectID.BreakBlock] = Content.Load<SoundEffect>("breakblock");
         
+        Font = Content.Load<SpriteFont>("font");
 
         var hotbarTexture = Content.Load<Texture2D>("hotbar");
         var fullTexture = Content.Load<Texture2D>("healthbar-full"); 
@@ -154,12 +178,12 @@ public class Game : Microsoft.Xna.Framework.Game {
 
         _camera.LookAt(new(MapWidth / 2, MapHeight / 2));
 
-        _blockParticleEffects = new ParticleEffect[BlockID.GetValues(typeof(BlockID)).Length];
-        _blockParticleEffects[(int) BlockID.Blue] = createParticleEffect(new Color(61, 50, 76));
-        _blockParticleEffects[(int) BlockID.Red] = createParticleEffect(new Color(124, 54, 39));
-        _blockParticleEffects[(int) BlockID.White] = createParticleEffect(new Color(136, 115, 105));
-        _blockParticleEffects[(int) BlockID.DarkBlue] = createParticleEffect(new Color(20, 16, 25));
-        _blockParticleEffects[(int) BlockID.DarkRed] = createParticleEffect(new Color(73, 32, 23));
+        _blockParticleEffects = new ParticleEffect[TileType.GetValues(typeof(TileType)).Length];
+        _blockParticleEffects[(int) TileType.Blue] = createParticleEffect(new Color(61, 50, 76));
+        _blockParticleEffects[(int) TileType.Red] = createParticleEffect(new Color(124, 54, 39));
+        _blockParticleEffects[(int) TileType.White] = createParticleEffect(new Color(136, 115, 105));
+        _blockParticleEffects[(int) TileType.DarkBlue] = createParticleEffect(new Color(20, 16, 25));
+        _blockParticleEffects[(int) TileType.DarkRed] = createParticleEffect(new Color(73, 32, 23));
     }
 
     protected override void UnloadContent() {
@@ -199,6 +223,7 @@ public class Game : Microsoft.Xna.Framework.Game {
     protected override void Update(GameTime gameTime) {
         updateCamera();
         base.Update(gameTime);
+        UI.UpdateUI(gameTime);
         _tiledWorld.Update(gameTime);
         _entityWorld.Update(gameTime);
         foreach (var particleEffect in _blockParticleEffects) {

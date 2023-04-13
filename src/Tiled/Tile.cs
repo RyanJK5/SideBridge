@@ -7,11 +7,11 @@ public class Tile : ICollisionActor {
 
     public const int MaxDurability = 15;
 
-    public readonly BlockID Type;
+    public readonly TileType Type;
     public readonly RectangleF Bounds;
     public int Durability;
 
-    public Tile(BlockID type, RectangleF bounds) {
+    public Tile(TileType type, RectangleF bounds) {
         Type = type;
         Bounds = bounds;
         Durability = MaxDurability;

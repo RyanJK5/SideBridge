@@ -39,8 +39,8 @@ public class Player : Entity {
 
     public bool OnGround {
         get => Bounds.Bottom < Game.MapHeight && Bounds.Bottom > 0 &&
-            Game.GetTile(Bounds.X, Bounds.Bottom).Type != BlockID.Air ||
-            Game.GetTile(Bounds.Right - 1, Bounds.Bottom).Type != BlockID.Air;
+            TileTypes.Solid(Game.GetTile(Bounds.X, Bounds.Bottom).Type) ||
+            TileTypes.Solid(Game.GetTile(Bounds.Right - 1, Bounds.Bottom).Type);
     }
 
     public bool Sprinting { get => Velocity.X != 0 && OnGround && _sprintKeyDown; }
@@ -93,6 +93,15 @@ public class Player : Entity {
     }
 
     public override void OnTileCollision(Tile tile) {
+        if (tile.Type == TileType.Goal) {
+            onDeath();
+            if (Game.GetGoalTeam(tile) != Team) {
+                Game.GetOtherPlayer(Team).onDeath();
+                Game.ScoreGoal(this);
+            }
+            return;
+        }
+        
         var otherBounds = tile.Bounds;
         var intersection = Bounds.Intersection(otherBounds);
 
@@ -208,7 +217,7 @@ public class Player : Entity {
                 tryShootBow(gameTime);
                 break;
             case 2:
-                tryPlaceBlock(gameTime);
+                tryModifyBlock(gameTime);
                 break;
             case 3:
                 tryDrinkPotion(gameTime);
@@ -241,7 +250,7 @@ public class Player : Entity {
 
         var player = Game.FindEntity<Player>(entity => entity != this && findIntersection(entity.Bounds).intersects);
         if (player != null) {
-            Tile[] tiles = Game.FindTiles(tile => findIntersection(tile.Bounds).intersects && tile.Type != BlockID.Air);
+            Tile[] tiles = Game.FindTiles(tile => findIntersection(tile.Bounds).intersects && TileTypes.Solid(tile.Type));
             foreach (var tile in tiles) {
                 if (findIntersection(tile.Bounds).distanceAlongLine < findIntersection(player.Bounds).distanceAlongLine) {
                     return;
@@ -294,23 +303,21 @@ public class Player : Entity {
         }
     }
 
-    private void tryPlaceBlock(GameTime gameTime) {
+    private void tryModifyBlock(GameTime gameTime) {
         Vector2 mousePos = Game.ScreenToWorld(Mouse.GetState().Position.ToVector2());
         var tileX = (int) (mousePos.X / TileSize) * TileSize;
         var tileY = (int) (mousePos.Y / TileSize) * TileSize;
         bool inRange = Vector2.Distance(new(tileX, tileY), Bounds.Position) < TileReach * TileSize && 
-            tileY / TileSize >= HeightLimit && tileX / TileSize > IslandWidths - 1 && tileX / TileSize < Game.MapWidth - IslandWidths;
-        if (Mouse.GetState().LeftButton == ButtonState.Pressed && inRange && Game.GetTile(mousePos.X, mousePos.Y).Type == BlockID.Air) {
+            tileY / TileSize >= HeightLimit && tileX / TileSize > IslandWidths - 1 && tileX / TileSize < Game.MapWidth / TileSize - IslandWidths;
+        if (Mouse.GetState().LeftButton == ButtonState.Pressed && inRange && Game.GetTile(mousePos.X, mousePos.Y).Type == TileType.Air) {
             placeTile(tileX, tileY, mousePos);
             return;
         }
         if (Mouse.GetState().RightButton == ButtonState.Pressed && inRange) {
             damageTile(Game.GetTile(mousePos.X, mousePos.Y));
         }
-        else {
-            if (Game.GetTile(_lastTileSound.pos.X, _lastTileSound.pos.Y).Type != BlockID.Air) {
-                _lastTileSound.soundEffect?.Stop();
-            }
+        else if (TileTypes.Solid(Game.GetTile(_lastTileSound.pos.X, _lastTileSound.pos.Y).Type)) {
+            _lastTileSound.soundEffect?.Stop();
         }
     }
 
@@ -356,9 +363,9 @@ public class Player : Entity {
                 mousePos.Y + vec.Y > Game.MapHeight || mousePos.Y + vec.Y < 0) {
                 continue;
             }
-            if (Game.GetTile(mousePos.X + vec.X, mousePos.Y + vec.Y).Type != BlockID.Air) {
-                var normalBlockType = Team == Team.Red ? BlockID.Red : BlockID.Blue;
-                var darkBlockType = Team == Team.Red ? BlockID.DarkRed : BlockID.DarkBlue;
+            if (TileTypes.Solid(Game.GetTile(mousePos.X + vec.X, mousePos.Y + vec.Y).Type)) {
+                var normalBlockType = Team == Team.Red ? TileType.Red : TileType.Blue;
+                var darkBlockType = Team == Team.Red ? TileType.DarkRed : TileType.DarkBlue;
                 Game.SetTile(tileY / TileSize <= HeightLimit ? darkBlockType : normalBlockType, mousePos.X, mousePos.Y);
                 break;
             }
@@ -367,7 +374,7 @@ public class Player : Entity {
 
     private (Vector2 pos, SoundEffectInstance soundEffect) _lastTileSound;
     private void damageTile(Tile tile) {
-        if (!Blocks.Breakable(tile.Type)) {
+        if (!TileTypes.Breakable(tile.Type)) {
             return;
         }
         if (tile.Durability == Tile.MaxDurability) {
@@ -378,7 +385,7 @@ public class Player : Entity {
         }
         tile.Durability--;
         if (tile.Durability <= 0) {
-            Game.SetTile(BlockID.Air, tile.Bounds.X, tile.Bounds.Y);
+            Game.SetTile(TileType.Air, tile.Bounds.X, tile.Bounds.Y);
         }
     }
 

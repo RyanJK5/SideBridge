@@ -33,22 +33,23 @@ public class TiledWorld : SimpleDrawableGameComponent {
 
         int tileSize = _tileSet.TileSize;
         foreach (var tile in _tileGrid) {
-            if (tile.Type != BlockID.Air) {
-                var blockIndex = (int) tile.Type - 1;
-                var tilePos = tile.Bounds.Position;
-                _spriteBatch.Draw(
-                    _tileSet.TileImage,
-                    tilePos,
-                    new Rectangle((blockIndex + _tileSet.Width) % _tileSet.Width * tileSize, 
-                    blockIndex / _tileSet.Width * tileSize, tileSize, tileSize), 
-                    Color.White);
+            if (tile.Type == TileType.Air) {
+                continue;
+            }
+            var blockIndex = (int) tile.Type - 1;
+            var tilePos = tile.Bounds.Position;
+            _spriteBatch.Draw(
+                _tileSet.TileImage,
+                tilePos,
+                new Rectangle((blockIndex + _tileSet.Width) % _tileSet.Width * tileSize, 
+                blockIndex / _tileSet.Width * tileSize, tileSize, tileSize), 
+                Color.White);
 
-                if (tile.Durability < Tile.MaxDurability) {
-                    var rectTop = tile.Bounds.Bottom - (float) (tile.Durability + 1) / Tile.MaxDurability * TileSize;
-                    _spriteBatch.FillRectangle(
-                        tilePos.X, rectTop, tileSize, tilePos.Y + tile.Bounds.Height - rectTop,
-                        Color.White * 0.5f);
-                }
+            if (tile.Durability < Tile.MaxDurability) {
+                var rectTop = tile.Bounds.Bottom - (float) (tile.Durability + 1) / Tile.MaxDurability * TileSize;
+                _spriteBatch.FillRectangle(
+                    tilePos.X, rectTop, tileSize, tilePos.Y + tile.Bounds.Height - rectTop,
+                    Color.White * 0.5f);
             }
         }
 
@@ -59,7 +60,7 @@ public class TiledWorld : SimpleDrawableGameComponent {
         Point2 mousePos = Game.ScreenToWorld(Mouse.GetState().Position.ToVector2());
         if (Mouse.GetState().RightButton == ButtonState.Pressed) {
             foreach (var tile in _tileGrid) {
-                if (tile.Type != BlockID.Air && !tile.Bounds.Contains(mousePos) && tile.Durability < Tile.MaxDurability) {
+                if (TileTypes.Solid(tile.Type) && !tile.Bounds.Contains(mousePos) && tile.Durability < Tile.MaxDurability) {
                     tile.Durability = Tile.MaxDurability;
                 }
             }
@@ -81,8 +82,11 @@ public class TiledWorld : SimpleDrawableGameComponent {
             this[(int) (bounds.Right / tileSize), (int) (bounds.Bottom / tileSize)]
         };
         foreach (Tile tile in possibleCollisions) {
-            if (tile.Type != BlockID.Air && tile.Bounds.Intersects(bounds)) {
+            if (tile.Type != TileType.Air && tile.Bounds.Intersects(bounds)) {
                 entity.OnTileCollision(tile);
+                if (tile.Type == TileType.Goal) {
+                    return;
+                }
             }
         }
     }
@@ -115,10 +119,7 @@ public class TiledWorld : SimpleDrawableGameComponent {
         return result.ToArray();
     }
 
-    public void SetTile(BlockID type, int x, int y) {
-        if (x < 0 || y < 0 || x >= Width || y >= Height) {
-            return;
-        }
+    public void SetTile(TileType type, int x, int y) {
         int tileSize = _tileSet.TileSize;
         var tile = new Tile(type, new(x * tileSize, y * tileSize, tileSize, tileSize));
         var oldTile = _tileGrid[x + Width * y]; 
@@ -131,7 +132,7 @@ public class TiledWorld : SimpleDrawableGameComponent {
         var tileSize = _tileSet.TileSize;
         for (var i = 0; i < _tileGrid.Length; i++) {
             var tiledMapTile = tiledMapTiles[i];
-            var tile = new Tile((BlockID) tiledMapTile.GlobalIdentifier, 
+            var tile = new Tile((TileType) tiledMapTile.GlobalIdentifier, 
                 new(tiledMapTile.X * tileSize, tiledMapTile.Y * tileSize, tileSize, tileSize));
             _tileGrid[i] = tile;
         }

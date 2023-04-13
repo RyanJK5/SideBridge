@@ -44,6 +44,13 @@
 /processorParam:Quality=Best
 /build:breakblock.mp3
 
+#begin Font.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:PremultiplyAlpha=True
+/processorParam:TextureFormat=Compressed
+/build:Font.spritefont
+
 #begin healthbar-empty.png
 /importer:TextureImporter
 /processor:TextureProcessor
