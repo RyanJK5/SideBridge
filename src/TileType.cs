@@ -7,12 +7,13 @@ public enum TileType {
     White,
     DarkBlue,
     DarkRed,
-    Goal
+    Goal,
+    Glass
 }
 
 public static class TileTypes {
 
-    public static bool Breakable(TileType type) => type != TileType.Air && type != TileType.White && type != TileType.Goal;
+    public static bool Breakable(TileType type) => type == TileType.Blue || type == TileType.Red || type == TileType.DarkBlue || type == TileType.DarkRed;
 
     public static bool Solid(TileType type) => type != TileType.Air && type != TileType.Goal;
 }

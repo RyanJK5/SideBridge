@@ -9,6 +9,7 @@ public class ScoreBar : UI {
 
     private const int TimerWidth = 58;
     private const int GameLength = 60 * 15;
+    private const int PauseLength = 5;
 
     public int RedScore { 
         get => _redScore; 
@@ -36,6 +37,7 @@ public class ScoreBar : UI {
         get => (int) (_elapsedTime / 60) + ":" + ((int) (_elapsedTime % 60) < 10 ? "0" : "") + (int) (_elapsedTime % 60);
     }
 
+    private float _timeSincePause;
     private float _elapsedTime;
     private readonly Texture2D _emptyTexture;
 
@@ -44,9 +46,20 @@ public class ScoreBar : UI {
         _elapsedTime = GameLength;
     }
 
+    public void Pause() {
+        _timeSincePause = PauseLength;
+    }
+
     public override void Update(GameTime gameTime) {
         if (_elapsedTime <= 0) {
             _elapsedTime = 0;
+            return;
+        }
+        if (_timeSincePause > 0) {
+            _timeSincePause -= gameTime.GetElapsedSeconds();
+            if (_timeSincePause <= 0) {
+                Game.StartRound();
+            }
             return;
         }
         _elapsedTime -= gameTime.GetElapsedSeconds();
@@ -66,7 +79,6 @@ public class ScoreBar : UI {
 
         );
         if (BlueScore > 0) {
-            Console.WriteLine("Heyo");
             spriteBatch.Draw(
                 Texture,
                 DrawPos,

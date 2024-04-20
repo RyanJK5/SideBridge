@@ -69,11 +69,11 @@ public class Game : Microsoft.Xna.Framework.Game {
         if (intX < 0 || intY < 0 || intX >= tiledWorld.Width || intY >= tiledWorld.Height) {
             return;
         }
-        if (type != TileType.Air) {
-            s_main._soundEffects[(int) SoundEffects.GetRandomBlockSound()].Play();
+        if (type == TileType.Air) {
+            s_main._blockParticleEffects[(int) GetTile(x, y).Type]?.Trigger(WorldToScreen(new Vector2(x + tileSize / 2, y + tileSize / 2)));
         }
-        else {
-            s_main._blockParticleEffects[(int) GetTile(x, y).Type].Trigger(WorldToScreen(new Vector2(x + tileSize / 2, y + tileSize / 2)));
+        else if (TileTypes.Breakable(type)) {
+            s_main._soundEffects[(int) SoundEffects.GetRandomBlockSound()].Play();
         }
         tiledWorld.SetTile(type, intX, intY);
     }
@@ -114,6 +114,36 @@ public class Game : Microsoft.Xna.Framework.Game {
 
     public static Player GetOtherPlayer(Team thisTeam) =>
         thisTeam == Team.Red ? Player1 : Player2;
+
+    public static void NewRound() {
+        Player1.OnDeath();
+        Player2.OnDeath();
+        s_main.SetPlatforms(false);
+        s_main._scoreBar.Pause();
+    }
+
+    public static void StartRound() {
+        s_main.SetPlatforms(true);
+    }
+
+    private void SetPlatforms(bool destroy) {
+        var tileType1 = TileType.Glass;
+        var tileType2 = TileType.White;
+        if (destroy) {
+            tileType1 = TileType.Air;
+            tileType2 = TileType.Air;
+        }
+        for (var i = 0; i < 5; i++) {
+            if (i == 0 || i == 4) {
+                for (var j = 0; j < 2; j++) {
+                    SetTile(tileType1, Player1.SpawnPosition.X - _tiledWorld.TileSize * 2 + _tiledWorld.TileSize * i, Player1.SpawnPosition.Y - _tiledWorld.TileSize * j);
+                    SetTile(tileType1, Player2.SpawnPosition.X - _tiledWorld.TileSize * 2 + _tiledWorld.TileSize * i, Player2.SpawnPosition.Y - _tiledWorld.TileSize * j);
+                }
+            }
+            SetTile(tileType2, Player1.SpawnPosition.X - _tiledWorld.TileSize * 2 + _tiledWorld.TileSize * i, Player1.SpawnPosition.Y + _tiledWorld.TileSize);
+            SetTile(tileType2, Player2.SpawnPosition.X - _tiledWorld.TileSize * 2 + _tiledWorld.TileSize * i, Player2.SpawnPosition.Y + _tiledWorld.TileSize);
+        }
+    }
 
     private Game() {
         _graphics = new GraphicsDeviceManager(this);
@@ -156,7 +186,7 @@ public class Game : Microsoft.Xna.Framework.Game {
         var emptyTexture = Content.Load<Texture2D>("img/healthbar-empty");
         var bonusTexture = Content.Load<Texture2D>("img/healthbar-golden");
 
-        var tileSet = new TileSet(Content.Load<Texture2D>("img/blocks"), 3, 2);
+        var tileSet = new TileSet(Content.Load<Texture2D>("img/blocks"), 3, 3);
         _tiledWorld = new TiledWorld(GraphicsDevice, tileSet, 61, 27);
         _tiledWorld.LoadMap(Content, WorldType.Default);
 
@@ -188,7 +218,6 @@ public class Game : Microsoft.Xna.Framework.Game {
         _blockParticleEffects = new ParticleEffect[Enum.GetValues(typeof(TileType)).Length];
         _blockParticleEffects[(int) TileType.Blue] = CreateParticleEffect(new Color(61, 50, 76));
         _blockParticleEffects[(int) TileType.Red] = CreateParticleEffect(new Color(124, 54, 39));
-        _blockParticleEffects[(int) TileType.White] = CreateParticleEffect(new Color(136, 115, 105));
         _blockParticleEffects[(int) TileType.DarkBlue] = CreateParticleEffect(new Color(20, 16, 25));
         _blockParticleEffects[(int) TileType.DarkRed] = CreateParticleEffect(new Color(73, 32, 23));
     }

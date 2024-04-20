@@ -49,7 +49,7 @@ public class Player : Entity {
 
     public readonly Team Team;
     public Vector2 SpawnPosition { 
-        get => Team == Team.Blue ? new(400, 100) : new(Game.MapWidth - 400 - Bounds.Width, 100);
+        get => Team == Team.Blue ? new(420 - Bounds.Width / 2, 180) : new(Game.MapWidth - 420 - Bounds.Width / 2, 180);
     }
 
     private readonly Hotbar _hotbar;
@@ -96,11 +96,11 @@ public class Player : Entity {
 
     public override void OnTileCollision(Tile tile) {
         if (tile.Type == TileType.Goal) {
-            OnDeath();
             if (Game.GetGoalTeam(tile) != Team) {
-                Game.GetOtherPlayer(Team).OnDeath();
-                Console.WriteLine("Heyo");
+                Game.NewRound();
                 Game.ScoreGoal(this);
+            } else {
+                OnDeath();
             }
             return;
         }
@@ -197,7 +197,7 @@ public class Player : Entity {
         Velocity = knockback;
     }
 
-    private void OnDeath() {
+    public void OnDeath() {
         Health = 20;
         Velocity = Vector2.Zero;
         Bounds.Position = SpawnPosition;
