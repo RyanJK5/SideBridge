@@ -15,6 +15,9 @@ public enum SoundEffectID {
     BreakBlock,
     SwordHit,
     ArrowHit,
+    Kill,
+    Tick,
+    Win
 }
 
 public static class SoundEffects {

@@ -10,6 +10,8 @@ namespace SideBridge;
 
 public class Player : Entity {
 
+    private const float MaxRedHealth = 20;
+
     private const float MaximumVerticalVelocity = 15f;
     private const float MaximumWalkingVelocity = 5f;
     private const float MaximumHorizontalVelocity = 20f;
@@ -80,7 +82,7 @@ public class Player : Entity {
         };
         Game.AddListeners(mouseListener, keyListener);
 
-        Health = 20;
+        Health = MaxRedHealth;
         Team = team;
         Bounds.Position = SpawnPosition;
     }
@@ -89,7 +91,9 @@ public class Player : Entity {
         if (other is Arrow arrow && arrow.PlayerTeam != Team && Game.ContainsEntity(arrow)) {
             RegisterArrowKnockback(arrow);
             RegisterDamage(arrow.Damage);
-            Game.GetSoundEffect(SoundEffectID.ArrowHit).CreateInstance().Play();
+            if (Health != MaxRedHealth) {
+                Game.GetSoundEffect(SoundEffectID.ArrowHit).CreateInstance().Play();
+            }
             Game.RemoveEntity(arrow);
         }
     }
@@ -108,8 +112,6 @@ public class Player : Entity {
         var otherBounds = tile.Bounds;
         var intersection = Bounds.Intersection(otherBounds);
 
-        var adj = Bounds.Width / otherBounds.Height;
-        var adj2 = otherBounds.Height / Bounds.Width;
         if (intersection.Height > intersection.Width) {
             if (Bounds.X < otherBounds.Position.X) {
                 Bounds.X -= intersection.Width;
@@ -176,6 +178,7 @@ public class Player : Entity {
         Health -= dmg;
         if (Health <= 0) {
             OnDeath();
+            Game.GetSoundEffect(SoundEffectID.Kill).CreateInstance().Play();
         }
     }
 
@@ -198,7 +201,7 @@ public class Player : Entity {
     }
 
     public void OnDeath() {
-        Health = 20;
+        Health = MaxRedHealth;
         Velocity = Vector2.Zero;
         Bounds.Position = SpawnPosition;
         _sprintKeyDown = false;
@@ -268,7 +271,9 @@ public class Player : Entity {
             }
             player.RegisterSwordKnockback(this);
             player.RegisterDamage(OnGround ? SwordDamge : SwordCriticalDamage);
-            Game.GetSoundEffect(SoundEffectID.SwordHit).CreateInstance().Play();
+            if (player.Health != MaxRedHealth) {
+                Game.GetSoundEffect(SoundEffectID.SwordHit).CreateInstance().Play();
+            }
         }
         
         (bool intersects, float distanceAlongLine) findIntersection(RectangleF bounds) {

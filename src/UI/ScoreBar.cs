@@ -38,6 +38,8 @@ public class ScoreBar : UI {
     }
 
     private float _timeSincePause;
+    private float _timeSincePauseMod;
+
     private float _elapsedTime;
     private readonly Texture2D _emptyTexture;
 
@@ -57,6 +59,10 @@ public class ScoreBar : UI {
         }
         if (_timeSincePause > 0) {
             _timeSincePause -= gameTime.GetElapsedSeconds();
+            if (_timeSincePause % 1 > _timeSincePauseMod) {
+                Game.GetSoundEffect(SoundEffectID.Tick).CreateInstance().Play();
+            }
+            _timeSincePauseMod = _timeSincePause % 1;
             if (_timeSincePause <= 0) {
                 Game.StartRound();
             }

@@ -194,9 +194,27 @@
 /processorParam:Quality=Best
 /build:sfx/breakblock.mp3
 
+#begin sfx/kill.ogg
+/importer:OggImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:sfx/kill.ogg
+
 #begin sfx/swordhit.ogg
 /importer:OggImporter
 /processor:SoundEffectProcessor
 /processorParam:Quality=Best
 /build:sfx/swordhit.ogg
+
+#begin sfx/tick.ogg
+/importer:OggImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:sfx/tick.ogg
+
+#begin sfx/win.ogg
+/importer:OggImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:sfx/win.ogg
 

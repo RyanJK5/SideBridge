@@ -24,9 +24,9 @@ public class Game : Microsoft.Xna.Framework.Game {
         s_main.Run();
     }
 
-    private GraphicsDeviceManager _graphics;
+    private readonly GraphicsDeviceManager _graphics;
+    private readonly OrthographicCamera _camera;
     private SpriteBatch _spriteBatch;
-    private OrthographicCamera _camera;
     private TiledWorld _tiledWorld;
     private EntityWorld _entityWorld;
     private ScoreBar _scoreBar;
@@ -57,9 +57,7 @@ public class Game : Microsoft.Xna.Framework.Game {
         return tiledWorld[(int) (x / tileSize), (int) (y / tileSize)];
     }
 
-    public static void CheckTileCollisions(Entity entity) {
-        s_main._tiledWorld.CheckTileCollisions(entity);
-    }
+    public static void CheckTileCollisions(Entity entity) => s_main._tiledWorld.CheckTileCollisions(entity);
 
     public static void SetTile(TileType type, float x, float y) {
         TiledWorld tiledWorld = s_main._tiledWorld;
@@ -70,7 +68,8 @@ public class Game : Microsoft.Xna.Framework.Game {
             return;
         }
         if (type == TileType.Air) {
-            s_main._blockParticleEffects[(int) GetTile(x, y).Type]?.Trigger(WorldToScreen(new Vector2(x + tileSize / 2, y + tileSize / 2)));
+            s_main._blockParticleEffects[(int) GetTile(x, y).Type]
+                ?.Trigger(WorldToScreen(new Vector2(x + tileSize / 2, y + tileSize / 2)));
         }
         else if (TileTypes.Breakable(type)) {
             s_main._soundEffects[(int) SoundEffects.GetRandomBlockSound()].Play();
@@ -124,6 +123,7 @@ public class Game : Microsoft.Xna.Framework.Game {
 
     public static void StartRound() {
         s_main.SetPlatforms(true);
+        GetSoundEffect(SoundEffectID.Kill).CreateInstance().Play();
     }
 
     private void SetPlatforms(bool destroy) {
@@ -133,15 +133,30 @@ public class Game : Microsoft.Xna.Framework.Game {
             tileType1 = TileType.Air;
             tileType2 = TileType.Air;
         }
-        for (var i = 0; i < 5; i++) {
-            if (i == 0 || i == 4) {
-                for (var j = 0; j < 2; j++) {
-                    SetTile(tileType1, Player1.SpawnPosition.X - _tiledWorld.TileSize * 2 + _tiledWorld.TileSize * i, Player1.SpawnPosition.Y - _tiledWorld.TileSize * j);
-                    SetTile(tileType1, Player2.SpawnPosition.X - _tiledWorld.TileSize * 2 + _tiledWorld.TileSize * i, Player2.SpawnPosition.Y - _tiledWorld.TileSize * j);
+        
+        Player[] players = {Player1, Player2};
+        foreach (var player in players) {
+            for (var i = 0; i < 5; i++) {
+                if (i == 0 || i == 4) {
+                    for (var j = 0; j < 2; j++) {
+                        SetTile(
+                            tileType1, 
+                            player.SpawnPosition.X - _tiledWorld.TileSize * 2 + _tiledWorld.TileSize * i, 
+                            player.SpawnPosition.Y - _tiledWorld.TileSize * j
+                        );
+                    }
                 }
+                SetTile(
+                    tileType1, 
+                    player.SpawnPosition.X - _tiledWorld.TileSize * 2 + _tiledWorld.TileSize * i, 
+                    player.SpawnPosition.Y - _tiledWorld.TileSize * 2
+                );
+                SetTile(
+                    tileType2, 
+                    player.SpawnPosition.X - _tiledWorld.TileSize * 2 + _tiledWorld.TileSize * i, 
+                    player.SpawnPosition.Y + _tiledWorld.TileSize
+                );
             }
-            SetTile(tileType2, Player1.SpawnPosition.X - _tiledWorld.TileSize * 2 + _tiledWorld.TileSize * i, Player1.SpawnPosition.Y + _tiledWorld.TileSize);
-            SetTile(tileType2, Player2.SpawnPosition.X - _tiledWorld.TileSize * 2 + _tiledWorld.TileSize * i, Player2.SpawnPosition.Y + _tiledWorld.TileSize);
         }
     }
 
@@ -150,9 +165,11 @@ public class Game : Microsoft.Xna.Framework.Game {
         _graphics.ToggleFullScreen();
 
         var viewportAdapter = new BoxingViewportAdapter(Window, GraphicsDevice, 1920, 1080);
-        _camera = new(viewportAdapter);
-        _camera.MinimumZoom = 0.75f;
-        _camera.MaximumZoom = 1.178f;
+        _camera = new(viewportAdapter)
+        {
+            MinimumZoom = 0.75f,
+            MaximumZoom = 1.178f
+        };
 
         Content.RootDirectory = "Content";
         IsMouseVisible = true;
@@ -172,6 +189,9 @@ public class Game : Microsoft.Xna.Framework.Game {
         
         _soundEffects[(int) SoundEffectID.ArrowHit] = Content.Load<SoundEffect>("sfx/arrowhit");
         _soundEffects[(int) SoundEffectID.SwordHit] = Content.Load<SoundEffect>("sfx/swordhit");
+        _soundEffects[(int) SoundEffectID.Kill] = Content.Load<SoundEffect>("sfx/kill");
+        _soundEffects[(int) SoundEffectID.Tick] = Content.Load<SoundEffect>("sfx/tick");
+        _soundEffects[(int) SoundEffectID.Win] = Content.Load<SoundEffect>("sfx/win");
         
         for (var i = 0; i <= (int) SoundEffectID.Block8; i++) {
             _soundEffects[i] = Content.Load<SoundEffect>("sfx/block" + (i+1));
@@ -235,7 +255,7 @@ public class Game : Microsoft.Xna.Framework.Game {
         var textureRegion = new TextureRegion2D(particleTexture);
         return new ParticleEffect(autoTrigger: false) {
             Emitters = new List<ParticleEmitter> {
-                new ParticleEmitter(textureRegion, 10, System.TimeSpan.FromSeconds(0.5f), Profile.BoxFill(40, 40)) {
+                new(textureRegion, 10, TimeSpan.FromSeconds(0.5f), Profile.BoxFill(40, 40)) {
                     AutoTrigger = false,
                     Parameters = new ParticleReleaseParameters {
                         Speed = new Range<float>(200f),
