@@ -45,7 +45,7 @@ public class Player : Entity {
             TileTypes.Solid(Game.GetTile(Bounds.Right - 1, Bounds.Bottom).Type);
     }
 
-    public bool Sprinting { get => Velocity.X != 0 && OnGround && _sprintKeyDown; }
+    public bool Sprinting { get => Velocity.X != 0 && _sprintKeyDown; }
     private bool _sprintKeyDown;
     private bool _sprintHit;
 
@@ -71,6 +71,8 @@ public class Player : Entity {
 
         var mouseListener = new MouseListener();
         mouseListener.MouseDown += TryUseSword;
+
+
         var keyListener = new KeyboardListener();
         keyListener.KeyPressed += (sender, args) => {
             if (args.Key == _keyInputs[(int) PlayerAction.Sprint]) {
@@ -80,6 +82,8 @@ public class Player : Entity {
                 }
             }
         };
+        _sprintKeyDown = true;
+
         Game.AddListeners(mouseListener, keyListener);
 
         Health = MaxRedHealth;
@@ -204,7 +208,7 @@ public class Player : Entity {
         Health = MaxRedHealth;
         Velocity = Vector2.Zero;
         Bounds.Position = SpawnPosition;
-        _sprintKeyDown = false;
+        _sprintKeyDown = true;
     }
 
     public override void Update(GameTime gameTime) {
@@ -243,7 +247,7 @@ public class Player : Entity {
         if (_bowCharge > 1 || _potionCharge > 0 || _voidCharge > 0) {
             Bounds.X += Velocity.X / 4;
         }
-        else if (OnGround && Sprinting) {
+        else if (Sprinting) {
             Bounds.X += Velocity.X * 1.5f;
         }
         else {
