@@ -7,9 +7,11 @@ namespace SideBridge;
 public class ScoreBar : UI {
 
     private const int TimerWidth = 58;
-    private const int GameLength = 60 * 5;
-    private const int PauseLength = 5;
     public const int MaxScore = 5;
+    
+    private const int GameLength = 60 * 1;
+    private const int WarningTick = 61;
+    private const int PauseLength = 5;
 
     public int RedScore { 
         get => _redScore; 
@@ -87,7 +89,7 @@ public class ScoreBar : UI {
             return;
         }
         _elapsedTime -= gameTime.GetElapsedSeconds();
-        if (_elapsedTime < 1 && _elapsedTime + gameTime.GetElapsedSeconds() > 1) {
+        if (_elapsedTime < WarningTick && _elapsedTime + gameTime.GetElapsedSeconds() > WarningTick) {
             Game.GetSoundEffect(SoundEffectID.Tick).CreateInstance().Play();
         }
         if (_elapsedTime < 0) {
