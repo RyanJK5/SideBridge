@@ -9,7 +9,7 @@ public class ScoreBar : UI {
     private const int TimerWidth = 58;
     public const int MaxScore = 5;
     
-    private const int GameLength = 60 * 1;
+    private const int GameLength = 60 * 5;
     private const int WarningTick = 61;
     private const int PauseLength = 5;
 
