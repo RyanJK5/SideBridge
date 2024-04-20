@@ -7,8 +7,8 @@ namespace SideBridge;
 public class ScoreBar : UI {
 
     private const int TimerWidth = 58;
-    private const int GameLength = 60 * 15;
-    private const int PauseLength = 1;
+    private const int GameLength = 60 * 5;
+    private const int PauseLength = 5;
     public const int MaxScore = 5;
 
     public int RedScore { 
@@ -88,7 +88,7 @@ public class ScoreBar : UI {
             _elapsedTime += gameTime.GetElapsedSeconds();
             return;
         }
-        _elapsedTime -= gameTime.GetElapsedSeconds() * 60;
+        _elapsedTime -= gameTime.GetElapsedSeconds();
         if (_elapsedTime < 0) {
             _elapsedTime = 0;
             _overtime = true;
