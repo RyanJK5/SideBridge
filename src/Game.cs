@@ -259,7 +259,6 @@ public class Game : Microsoft.Xna.Framework.Game {
 
         Arrow.ArrowTexture = Content.Load<Texture2D>("img/arrow");
 
-
         var playerTexture = Content.Load<Texture2D>("img/player");
         
         var hotbarDrawPos = new Vector2(WindowWidth / 2 - hotbarTexture.Width / 2, 0);
@@ -287,6 +286,8 @@ public class Game : Microsoft.Xna.Framework.Game {
         _blockParticleEffects[(int) TileType.Red] = CreateParticleEffect(new Color(124, 54, 39));
         _blockParticleEffects[(int) TileType.DarkBlue] = CreateParticleEffect(new Color(20, 16, 25));
         _blockParticleEffects[(int) TileType.DarkRed] = CreateParticleEffect(new Color(73, 32, 23));
+
+        NewRound();
     }
 
     protected override void UnloadContent() {
