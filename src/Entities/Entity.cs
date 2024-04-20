@@ -1,5 +1,4 @@
 using MonoGame.Extended;
-using MonoGame.Extended.Collisions;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 

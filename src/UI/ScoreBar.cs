@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
@@ -65,10 +66,11 @@ public class ScoreBar : UI {
 
         );
         if (BlueScore > 0) {
+            Console.WriteLine("Heyo");
             spriteBatch.Draw(
                 Texture,
                 DrawPos,
-                new Rectangle(0, 0, (int) (CellWidth * BlueScore) + 1, Texture.Height),
+                new Rectangle(0, 0, CellWidth * BlueScore + 1, Texture.Height),
                 Color.White,
                 0f,
                 Vector2.Zero,
@@ -78,7 +80,7 @@ public class ScoreBar : UI {
             );
         }
         if (RedScore > 0) {
-            var scoreWidth = (int) (CellWidth * (5 - RedScore));
+            var scoreWidth = CellWidth * (5 - RedScore);
             var scoreX = Texture.Width / 2 + TimerWidth / 2 + scoreWidth;
             spriteBatch.Draw(
                 Texture,

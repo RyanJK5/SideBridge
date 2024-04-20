@@ -35,7 +35,7 @@ public class Player : Entity {
     private float _voidCharge;
 
     public float Health { get; private set; }
-    private Keys[] _keyInputs;
+    private readonly Keys[] _keyInputs;
 
     public bool OnGround {
         get => Bounds.Bottom < Game.MapHeight && Bounds.Bottom > 0 &&
@@ -49,11 +49,11 @@ public class Player : Entity {
 
     public readonly Team Team;
     public Vector2 SpawnPosition { 
-        get => Team == Team.Blue ? new(200, 100) : new(Game.MapWidth - 200, 100);
+        get => Team == Team.Blue ? new(400, 100) : new(Game.MapWidth - 400 - Bounds.Width, 100);
     }
 
-    private Hotbar _hotbar;
-    private HealthBar _healthBar;
+    private readonly Hotbar _hotbar;
+    private readonly HealthBar _healthBar;
 
     public Player(Texture2D texture, Hotbar hotbar, HealthBar healthBar, RectangleF bounds, Team team) : base(texture, bounds) {
         if (team == Team.Blue) {
@@ -68,7 +68,7 @@ public class Player : Entity {
         _healthBar.SetPlayer(this);
 
         var mouseListener = new MouseListener();
-        mouseListener.MouseDown += tryUseSword;
+        mouseListener.MouseDown += TryUseSword;
         var keyListener = new KeyboardListener();
         keyListener.KeyPressed += (sender, args) => {
             if (args.Key == _keyInputs[(int) PlayerAction.Sprint]) {
@@ -88,16 +88,17 @@ public class Player : Entity {
     public override void OnCollision(Entity other) {
         if (other is Arrow arrow && arrow.PlayerTeam != Team && Game.ContainsEntity(arrow)) {
             RegisterDamage(arrow.Damage);
-            registerArrowKnockback(arrow);
+            RegisterArrowKnockback(arrow);
             Game.RemoveEntity(arrow);
         }
     }
 
     public override void OnTileCollision(Tile tile) {
         if (tile.Type == TileType.Goal) {
-            onDeath();
+            OnDeath();
             if (Game.GetGoalTeam(tile) != Team) {
-                Game.GetOtherPlayer(Team).onDeath();
+                Game.GetOtherPlayer(Team).OnDeath();
+                Console.WriteLine("Heyo");
                 Game.ScoreGoal(this);
             }
             return;
@@ -173,17 +174,17 @@ public class Player : Entity {
     public void RegisterDamage(float dmg) {
         Health -= dmg;
         if (Health <= 0) {
-            onDeath();
+            OnDeath();
         }
     }
 
-    private void registerArrowKnockback(Arrow arrow) {
+    private void RegisterArrowKnockback(Arrow arrow) {
         Velocity = arrow.Velocity / 5f;
         Velocity.Y = -2f;
         _sprintKeyDown = false;
     }
 
-    private void registerSwordKnockback(Player player) {
+    private void RegisterSwordKnockback(Player player) {
         Vector2 knockback = new Vector2(player.Bounds.Center.X < Bounds.Center.X ? 5f : -5f, -8f);
         if (player.Sprinting && !player._sprintHit) {
             knockback.X *= 1.5f;
@@ -195,17 +196,18 @@ public class Player : Entity {
         Velocity = knockback;
     }
 
-    private void onDeath() {
+    private void OnDeath() {
         Health = 20;
         Velocity = Vector2.Zero;
         Bounds.Position = SpawnPosition;
+        _sprintKeyDown = false;
     }
 
     public override void Update(GameTime gameTime) {
-        setVerticalVelocity();
-        setHorizontalVelocity();
-        updatePosition();
-        resetPositions();
+        SetVerticalVelocity();
+        SetHorizontalVelocity();
+        UpdatePosition();
+        ResetPositions();
 
         if (TimeSinceBowShot < ArrowCooldown) {
             TimeSinceBowShot += gameTime.GetElapsedSeconds();
@@ -221,19 +223,19 @@ public class Player : Entity {
 
         switch (_hotbar.ActiveSlot) {
             case 1:
-                tryShootBow(gameTime);
+                TryShootBow(gameTime);
                 break;
             case 2:
-                tryModifyBlock(gameTime);
+                TryModifyBlock(gameTime);
                 break;
             case 3:
-                tryDrinkPotion(gameTime);
+                TryDrinkPotion(gameTime);
                 break;
         }
-        tryVoid(gameTime);
+        TryVoid(gameTime);
     }
 
-    private void updatePosition() {
+    private void UpdatePosition() {
         if (_bowCharge > 1 || _potionCharge > 0 || _voidCharge > 0) {
             Bounds.X += Velocity.X / 4;
         }
@@ -246,7 +248,7 @@ public class Player : Entity {
         Bounds.Y += Velocity.Y;
     }
 
-    private void tryUseSword(object sender, MouseEventArgs args) {
+    private void TryUseSword(object sender, MouseEventArgs args) {
         if (_hotbar.ActiveSlot != 0) {
             return;
         }
@@ -263,7 +265,7 @@ public class Player : Entity {
                     return;
                 }
             }
-            player.registerSwordKnockback(this);
+            player.RegisterSwordKnockback(this);
             player.RegisterDamage(OnGround ? SwordDamge : SwordCriticalDamage);
         }
         
@@ -273,7 +275,7 @@ public class Player : Entity {
         }
     }
 
-    private void tryShootBow(GameTime gameTime) {
+    private void TryShootBow(GameTime gameTime) {
         if (TimeSinceBowShot < ArrowCooldown) {
             return;
         }
@@ -310,25 +312,25 @@ public class Player : Entity {
         }
     }
 
-    private void tryModifyBlock(GameTime gameTime) {
+    private void TryModifyBlock(GameTime gameTime) {
         Vector2 mousePos = Game.ScreenToWorld(Mouse.GetState().Position.ToVector2());
         var tileX = (int) (mousePos.X / TileSize) * TileSize;
         var tileY = (int) (mousePos.Y / TileSize) * TileSize;
         bool inRange = Vector2.Distance(new(tileX, tileY), Bounds.Position) < TileReach * TileSize && 
             tileY / TileSize >= HeightLimit && tileX / TileSize > IslandWidths - 1 && tileX / TileSize < Game.MapWidth / TileSize - IslandWidths;
         if (Mouse.GetState().LeftButton == ButtonState.Pressed && inRange && Game.GetTile(mousePos.X, mousePos.Y).Type == TileType.Air) {
-            placeTile(tileX, tileY, mousePos);
+            PlaceTile(tileX, tileY, mousePos);
             return;
         }
         if (Mouse.GetState().RightButton == ButtonState.Pressed && inRange) {
-            damageTile(Game.GetTile(mousePos.X, mousePos.Y));
+            DamageTile(Game.GetTile(mousePos.X, mousePos.Y));
         }
         else if (TileTypes.Solid(Game.GetTile(_lastTileSound.pos.X, _lastTileSound.pos.Y).Type)) {
             _lastTileSound.soundEffect?.Stop();
         }
     }
-
-    private void tryDrinkPotion(GameTime gameTime) {
+    
+    private void TryDrinkPotion(GameTime gameTime) {
         var mouseState = Mouse.GetState();
         if (mouseState.LeftButton == ButtonState.Pressed) {
             _potionCharge += gameTime.GetElapsedSeconds();
@@ -342,12 +344,12 @@ public class Player : Entity {
         }
     }
 
-    private void tryVoid(GameTime gameTime) {
+    private void TryVoid(GameTime gameTime) {
         if (Keyboard.GetState().IsKeyDown(_keyInputs[(int) PlayerAction.Void])) {
             _voidCharge += gameTime.GetElapsedSeconds();
             if (_voidCharge >= VoidTime) {
                 _voidCharge = 0;
-                onDeath();
+                OnDeath();
             }
         }
         else {
@@ -355,7 +357,7 @@ public class Player : Entity {
         }
     }
 
-    private void placeTile(float tileX, float tileY, Vector2 mousePos) {
+    private void PlaceTile(float tileX, float tileY, Vector2 mousePos) {
         if (Game.FindEntity<Player>(player => player.Bounds.Intersects(new(tileX, tileY, TileSize, TileSize))) != null) {
             return;
         }
@@ -380,7 +382,7 @@ public class Player : Entity {
     }
 
     private (Vector2 pos, SoundEffectInstance soundEffect) _lastTileSound;
-    private void damageTile(Tile tile) {
+    private void DamageTile(Tile tile) {
         if (!TileTypes.Breakable(tile.Type)) {
             return;
         }
@@ -396,43 +398,43 @@ public class Player : Entity {
         }
     }
 
-    private void setHorizontalVelocity() {
+    private void SetHorizontalVelocity() {
         bool leftDown = Keyboard.GetState().IsKeyDown(_keyInputs[(int) PlayerAction.Left]);
         bool rightDown = Keyboard.GetState().IsKeyDown(_keyInputs[(int) PlayerAction.Right]);
         if (leftDown && !(rightDown && Velocity.X <= 0)) {
-            updateVelocity(-HorizontalAcceleration, 0, MaximumWalkingVelocity, MaximumVerticalVelocity);
+            UpdateVelocity(-HorizontalAcceleration, 0, MaximumWalkingVelocity, MaximumVerticalVelocity);
         }
         else if (!leftDown && Velocity.X <= 0 && OnGround) {
-            updateVelocity(HorizontalAcceleration, 0, 0, MaximumVerticalVelocity);
+            UpdateVelocity(HorizontalAcceleration, 0, 0, MaximumVerticalVelocity);
         }
         if (rightDown && !(leftDown && Velocity.X >= 0)) {
-            updateVelocity(HorizontalAcceleration, 0, MaximumWalkingVelocity, MaximumVerticalVelocity);
+            UpdateVelocity(HorizontalAcceleration, 0, MaximumWalkingVelocity, MaximumVerticalVelocity);
         }
         else if (!rightDown && Velocity.X >= 0 && OnGround) {
-            updateVelocity(-HorizontalAcceleration, 0, 0, MaximumVerticalVelocity);
+            UpdateVelocity(-HorizontalAcceleration, 0, 0, MaximumVerticalVelocity);
         }
         if (!leftDown && !rightDown && Velocity.X != 0 && OnGround) {
             if (Velocity.X < 0) {
-                updateVelocity(HorizontalAcceleration, 0, 0, MaximumVerticalVelocity);
+                UpdateVelocity(HorizontalAcceleration, 0, 0, MaximumVerticalVelocity);
             }
             else {
-                updateVelocity(-HorizontalAcceleration, 0, 0, MaximumVerticalVelocity);
+                UpdateVelocity(-HorizontalAcceleration, 0, 0, MaximumVerticalVelocity);
             }
         }
     }
 
-    private void setVerticalVelocity() {
+    private void SetVerticalVelocity() {
         if  (OnGround) {
             if (Keyboard.GetState().IsKeyDown(_keyInputs[(int) PlayerAction.Jump])) {
                 Velocity.Y = -11f;
             }
         }
         else {
-            updateVelocity(0, VerticalAcceleration);
+            UpdateVelocity(0, VerticalAcceleration);
         }
     }
 
-    private void resetPositions() {
+    private void ResetPositions() {
         if (Bounds.X < 0) {
             Bounds.X = 0;
         }
@@ -444,7 +446,7 @@ public class Player : Entity {
         }
     }
 
-    private void updateVelocity(float x, float y, float xLimit, float yLimit) {
+    private void UpdateVelocity(float x, float y, float xLimit, float yLimit) {
         if ((x >= 0 && Velocity.X + x < xLimit) || (x < 0 && Velocity.X + x > -xLimit)) {
             Velocity.X += x;
         }
@@ -470,6 +472,6 @@ public class Player : Entity {
         }
     }
 
-    private void updateVelocity(float x, float y) => 
-        updateVelocity(x, y, MaximumHorizontalVelocity, MaximumVerticalVelocity);
+    private void UpdateVelocity(float x, float y) => 
+        UpdateVelocity(x, y, MaximumHorizontalVelocity, MaximumVerticalVelocity);
 }

@@ -55,6 +55,6 @@ public class EntityWorld : SimpleDrawableGameComponent {
                 return result;
             }
         }
-        return default(T);
+        return default;
     }
 }

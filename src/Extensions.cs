@@ -19,13 +19,13 @@ public static class Extensions {
     }
 
     public static bool IntersectsLine(this RectangleF rect, Vector2 pointA, Vector2 pointB, out Vector2 intersectionPoint) {
-        LineF line1 = new LineF(pointA, pointB);
+        var line1 = new LineF(pointA, pointB);
 
         LineF[] rectCorners = {
-            new LineF(rect.TopLeft, rect.TopRight),
-            new LineF(rect.TopRight, rect.BottomRight),
-            new LineF(rect.BottomRight, rect.BottomLeft),
-            new LineF(rect.BottomLeft, rect.TopLeft)
+            new(rect.TopLeft, rect.TopRight),
+            new(rect.TopRight, rect.BottomRight),
+            new(rect.BottomRight, rect.BottomLeft),
+            new(rect.BottomLeft, rect.TopLeft)
         };
 
         foreach (var line2 in rectCorners) {

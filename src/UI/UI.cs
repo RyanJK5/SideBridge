@@ -6,7 +6,7 @@ namespace SideBridge;
 
 public abstract class UI {
 
-    private static Bag<UI> s_allUI = new();
+    private static readonly Bag<UI> s_allUI = new();
 
     protected Texture2D Texture;
     protected Vector2 DrawPos;

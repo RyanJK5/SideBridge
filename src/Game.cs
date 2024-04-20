@@ -83,9 +83,9 @@ public class Game : Microsoft.Xna.Framework.Game {
     public static bool ContainsEntity(Entity entity) => s_main._entityWorld.Contains(entity);
 
     #nullable enable
-    public static T? FindEntity<T>(System.Predicate<T> testCase) => s_main._entityWorld.FindEntity(testCase);
+    public static T? FindEntity<T>(Predicate<T> testCase) => s_main._entityWorld.FindEntity(testCase);
 
-    public static Tile[] FindTiles(System.Predicate<Tile> testCase) => s_main._tiledWorld.FindTiles(testCase);
+    public static Tile[] FindTiles(Predicate<Tile> testCase) => s_main._tiledWorld.FindTiles(testCase);
     #nullable disable
 
     public static Vector2 ScreenToWorld(Vector2 position) => s_main._camera.ScreenToWorld(position.X, position.Y);
@@ -179,11 +179,11 @@ public class Game : Microsoft.Xna.Framework.Game {
         _camera.LookAt(new(MapWidth / 2, MapHeight / 2));
 
         _blockParticleEffects = new ParticleEffect[TileType.GetValues(typeof(TileType)).Length];
-        _blockParticleEffects[(int) TileType.Blue] = createParticleEffect(new Color(61, 50, 76));
-        _blockParticleEffects[(int) TileType.Red] = createParticleEffect(new Color(124, 54, 39));
-        _blockParticleEffects[(int) TileType.White] = createParticleEffect(new Color(136, 115, 105));
-        _blockParticleEffects[(int) TileType.DarkBlue] = createParticleEffect(new Color(20, 16, 25));
-        _blockParticleEffects[(int) TileType.DarkRed] = createParticleEffect(new Color(73, 32, 23));
+        _blockParticleEffects[(int) TileType.Blue] = CreateParticleEffect(new Color(61, 50, 76));
+        _blockParticleEffects[(int) TileType.Red] = CreateParticleEffect(new Color(124, 54, 39));
+        _blockParticleEffects[(int) TileType.White] = CreateParticleEffect(new Color(136, 115, 105));
+        _blockParticleEffects[(int) TileType.DarkBlue] = CreateParticleEffect(new Color(20, 16, 25));
+        _blockParticleEffects[(int) TileType.DarkRed] = CreateParticleEffect(new Color(73, 32, 23));
     }
 
     protected override void UnloadContent() {
@@ -193,7 +193,7 @@ public class Game : Microsoft.Xna.Framework.Game {
         base.UnloadContent();
     }
 
-    private ParticleEffect createParticleEffect(Color color) {
+    private ParticleEffect CreateParticleEffect(Color color) {
         var particleTexture = new Texture2D(GraphicsDevice, 1, 1);
         particleTexture.SetData(new[] { color });
         var textureRegion = new TextureRegion2D(particleTexture);
@@ -221,7 +221,7 @@ public class Game : Microsoft.Xna.Framework.Game {
     }
 
     protected override void Update(GameTime gameTime) {
-        updateCamera();
+        UpdateCamera();
         base.Update(gameTime);
         UI.UpdateUI(gameTime);
         _tiledWorld.Update(gameTime);
@@ -232,7 +232,7 @@ public class Game : Microsoft.Xna.Framework.Game {
     }
 
     // TODO fix camera going wacky when someone dies
-    private void updateCamera() {
+    private void UpdateCamera() {
         var sideBounds = 100f / _camera.Zoom;
         var camTop = _camera.Center.Y - WindowHeight / _camera.Zoom / 2f;
         var camBottom = _camera.Center.Y + WindowHeight / _camera.Zoom / 2f;

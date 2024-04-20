@@ -8,14 +8,11 @@ namespace SideBridge;
 
 public class Hotbar : UI {
 
-    static int i;
-    int thisI;
-
     private const int SlotNum = 4;
     public int ActiveSlot;
     public int SlotSize { get => Texture.Width / SlotNum; }
 
-    public Hotbar(Texture2D texture, Vector2 drawPos) : base(texture, drawPos) { i++; thisI = i; }
+    public Hotbar(Texture2D texture, Vector2 drawPos) : base(texture, drawPos) { }
 
     public override void Draw(SpriteBatch spriteBatch) {
         spriteBatch.Draw(Texture, DrawPos, Color.White);
@@ -27,7 +24,6 @@ public class Hotbar : UI {
     }
 
     public InputListener[] CreateInputListeners() {
-        if (thisI <= 1) return new InputListener[0];
         var keyListener = new KeyboardListener();
         keyListener.KeyPressed += (sender, args) => {
             if (args.Key > Keys.D0 && args.Key <= Keys.D9) {

@@ -122,7 +122,6 @@ public class TiledWorld : SimpleDrawableGameComponent {
     public void SetTile(TileType type, int x, int y) {
         int tileSize = _tileSet.TileSize;
         var tile = new Tile(type, new(x * tileSize, y * tileSize, tileSize, tileSize));
-        var oldTile = _tileGrid[x + Width * y]; 
         _tileGrid[x + Width * y] = tile;
     }
 

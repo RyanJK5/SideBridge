@@ -8,11 +8,13 @@ namespace SideBridge;
 
 public class Arrow : Entity {
     private const float VerticalAcceleration = 1f;
-    
-    public static Texture2D ArrowTexture;
+
+    private static Texture2D _arrowTexture;
 
     public readonly float Damage;
     public readonly Team PlayerTeam;
+
+    public static Texture2D ArrowTexture { get => _arrowTexture; set => _arrowTexture = value; }
 
     public Arrow(RectangleF bounds, float damage, Team playerTeam) : base(ArrowTexture, bounds) {
         Bounds = bounds;
