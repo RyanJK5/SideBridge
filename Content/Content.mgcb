@@ -140,15 +140,63 @@
 /processorParam:Quality=Best
 /build:sfx/arrowhit.ogg
 
+#begin sfx/block1.ogg
+/importer:OggImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:sfx/block1.ogg
+
+#begin sfx/block2.ogg
+/importer:OggImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:sfx/block2.ogg
+
+#begin sfx/block3.ogg
+/importer:OggImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:sfx/block3.ogg
+
+#begin sfx/block4.ogg
+/importer:OggImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:sfx/block4.ogg
+
+#begin sfx/block5.ogg
+/importer:OggImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:sfx/block5.ogg
+
+#begin sfx/block6.ogg
+/importer:OggImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:sfx/block6.ogg
+
+#begin sfx/block7.ogg
+/importer:OggImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:sfx/block7.ogg
+
+#begin sfx/block8.ogg
+/importer:OggImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:sfx/block8.ogg
+
 #begin sfx/breakblock.mp3
 /importer:Mp3Importer
 /processor:SoundEffectProcessor
 /processorParam:Quality=Best
 /build:sfx/breakblock.mp3
 
-#begin sfx/placeblock.mp3
-/importer:Mp3Importer
+#begin sfx/swordhit.ogg
+/importer:OggImporter
 /processor:SoundEffectProcessor
 /processorParam:Quality=Best
-/build:sfx/placeblock.mp3
+/build:sfx/swordhit.ogg
 

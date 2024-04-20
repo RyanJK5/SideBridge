@@ -25,6 +25,7 @@ public class Arrow : Entity {
     public override void OnCollision(Entity other) { }
 
     public override void OnTileCollision(Tile tile) {
+        Velocity = Vector2.Zero;
         Game.RemoveEntity(this);
     }
 
@@ -47,7 +48,7 @@ public class Arrow : Entity {
             SpriteEffects.None,
             0f
         );
-        spriteBatch.DrawRectangle(Bounds, Color.Red);
+        // spriteBatch.DrawRectangle(Bounds, Color.Red);
     }
 
 }

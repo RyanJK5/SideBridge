@@ -60,7 +60,7 @@ public class Player : Entity {
             _keyInputs = new Keys[] { Keys.A, Keys.D, Keys.LeftShift, Keys.W, Keys.Q };
         }
         else {
-            _keyInputs = new Keys[] { Keys.L, Keys.OemQuotes, Keys.RightShift, Keys.P, Keys.OemOpenBrackets };
+            _keyInputs = new Keys[] { Keys.Left, Keys.Right, Keys.RightControl, Keys.Up, Keys.NumPad0};
         }
         
         _hotbar = hotbar;
@@ -87,8 +87,8 @@ public class Player : Entity {
 
     public override void OnCollision(Entity other) {
         if (other is Arrow arrow && arrow.PlayerTeam != Team && Game.ContainsEntity(arrow)) {
-            RegisterDamage(arrow.Damage);
             RegisterArrowKnockback(arrow);
+            RegisterDamage(arrow.Damage);
             Game.GetSoundEffect(SoundEffectID.ArrowHit).CreateInstance().Play();
             Game.RemoveEntity(arrow);
         }
@@ -186,7 +186,7 @@ public class Player : Entity {
     }
 
     private void RegisterSwordKnockback(Player player) {
-        Vector2 knockback = new Vector2(player.Bounds.Center.X < Bounds.Center.X ? 5f : -5f, -8f);
+        var knockback = new Vector2(player.Bounds.Center.X < Bounds.Center.X ? 5f : -5f, -8f);
         if (player.Sprinting && !player._sprintHit) {
             knockback.X *= 1.5f;
             player._sprintHit = true;
@@ -268,6 +268,7 @@ public class Player : Entity {
             }
             player.RegisterSwordKnockback(this);
             player.RegisterDamage(OnGround ? SwordDamge : SwordCriticalDamage);
+            Game.GetSoundEffect(SoundEffectID.SwordHit).CreateInstance().Play();
         }
         
         (bool intersects, float distanceAlongLine) findIntersection(RectangleF bounds) {

@@ -70,7 +70,7 @@ public class Game : Microsoft.Xna.Framework.Game {
             return;
         }
         if (type != TileType.Air) {
-            s_main._soundEffects[0].Play();
+            s_main._soundEffects[(int) SoundEffects.GetRandomBlockSound()].Play();
         }
         else {
             s_main._blockParticleEffects[(int) GetTile(x, y).Type].Trigger(WorldToScreen(new Vector2(x + tileSize / 2, y + tileSize / 2)));
@@ -140,10 +140,15 @@ public class Game : Microsoft.Xna.Framework.Game {
     protected override void LoadContent() {
         _spriteBatch = new(GraphicsDevice);
         
-        _soundEffects[(int) SoundEffectID.PlaceBlock] = Content.Load<SoundEffect>("sfx/placeblock");
-        _soundEffects[(int) SoundEffectID.BreakBlock] = Content.Load<SoundEffect>("sfx/breakblock");
         _soundEffects[(int) SoundEffectID.ArrowHit] = Content.Load<SoundEffect>("sfx/arrowhit");
+        _soundEffects[(int) SoundEffectID.SwordHit] = Content.Load<SoundEffect>("sfx/swordhit");
         
+        for (var i = 0; i <= (int) SoundEffectID.Block8; i++) {
+            _soundEffects[i] = Content.Load<SoundEffect>("sfx/block" + (i+1));
+        }
+        _soundEffects[(int) SoundEffectID.BreakBlock] = Content.Load<SoundEffect>("sfx/breakblock");
+
+
         Font = Content.Load<SpriteFont>("font");
 
         var hotbarTexture = Content.Load<Texture2D>("img/hotbar");
@@ -176,6 +181,7 @@ public class Game : Microsoft.Xna.Framework.Game {
 
         _scoreBar = new ScoreBar(Content.Load<Texture2D>("img/scorebar-full"), Content.Load<Texture2D>("img/scorebar-empty"), 
             new(hotbarDrawPos.X, hotbarDrawPos.Y + hotbarTexture.Height + 5));
+
 
         _camera.LookAt(new(MapWidth / 2, MapHeight / 2));
 
