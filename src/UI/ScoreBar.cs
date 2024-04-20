@@ -1,4 +1,3 @@
-using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
@@ -10,12 +9,17 @@ public class ScoreBar : UI {
     private const int TimerWidth = 58;
     private const int GameLength = 60 * 15;
     private const int PauseLength = 5;
+    public const int MaxScore = 5;
 
     public int RedScore { 
         get => _redScore; 
         set {
-            if (value <= 5) {
+            if (value < 5) {
                 _redScore = value;
+            }
+            else {
+                _redScore = MaxScore;
+                _timeSincePause = 0;
             }
         }
     }
@@ -24,8 +28,12 @@ public class ScoreBar : UI {
     public int BlueScore { 
         get => _blueScore; 
         set {
-            if (value <= 5) {
+            if (value < 5) {
                 _blueScore = value;
+            }
+            else {
+                _blueScore = MaxScore;
+                _timeSincePause = 0;
             }
         }
     }
@@ -48,9 +56,7 @@ public class ScoreBar : UI {
         _elapsedTime = GameLength;
     }
 
-    public void Pause() {
-        _timeSincePause = PauseLength;
-    }
+    public void Pause() => _timeSincePause = PauseLength;
 
     public override void Update(GameTime gameTime) {
         if (_elapsedTime <= 0) {

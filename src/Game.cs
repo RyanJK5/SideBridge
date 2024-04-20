@@ -97,11 +97,33 @@ public class Game : Microsoft.Xna.Framework.Game {
     public static Matrix GetViewMatrix() => s_main._camera.GetViewMatrix();
 
     public static void ScoreGoal(Player player) {
-        if (player == Player1) {
-            s_main._scoreBar.BlueScore++;
+        var scoreBar = s_main._scoreBar;
+        if (scoreBar.BlueScore == ScoreBar.MaxScore || scoreBar.RedScore == ScoreBar.MaxScore) {
             return;
         }
-        s_main._scoreBar.RedScore++;
+        NewRound();
+        if (player == Player1) {
+            scoreBar.BlueScore++;
+            if (scoreBar.BlueScore == ScoreBar.MaxScore) {
+                EndGame(Team.Blue);
+            }
+            return;
+        }
+        scoreBar.RedScore++;
+        if (scoreBar.RedScore == ScoreBar.MaxScore) {
+                EndGame(Team.Red);
+        }
+    }
+
+    public static void EndGame(Team team) {
+        GetSoundEffect(SoundEffectID.Win).CreateInstance().Play();
+        StartRound();
+        if (team == Team.Blue) {
+            RemoveEntity(Player2);
+        }
+        else {
+            RemoveEntity(Player1);
+        }
     }
 
     public static Team GetGoalTeam(Tile goal) {
