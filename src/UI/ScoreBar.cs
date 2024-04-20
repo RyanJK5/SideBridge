@@ -8,7 +8,7 @@ public class ScoreBar : UI {
 
     private const int TimerWidth = 58;
     private const int GameLength = 60 * 15;
-    private const int PauseLength = 5;
+    private const int PauseLength = 1;
     public const int MaxScore = 5;
 
     public int RedScore { 
@@ -37,6 +37,15 @@ public class ScoreBar : UI {
             }
         }
     }
+
+    public bool RedWon {
+        get => (_overtime && _redScore > _blueScore) || _redScore == MaxScore;
+    }
+
+    public bool BlueWon {
+        get => (_overtime && _blueScore > _redScore) || _blueScore == MaxScore;
+    }
+
     private int _blueScore;
 
     public int CellWidth { get => (Texture.Width - TimerWidth) / 10; }
@@ -49,6 +58,8 @@ public class ScoreBar : UI {
     private float _timeSincePauseMod;
 
     private float _elapsedTime;
+    private bool _overtime;
+
     private readonly Texture2D _emptyTexture;
 
     public ScoreBar(Texture2D fullTexture, Texture2D emptyTexture, Vector2 drawPos) : base(fullTexture, drawPos) {
@@ -59,8 +70,7 @@ public class ScoreBar : UI {
     public void Pause() => _timeSincePause = PauseLength;
 
     public override void Update(GameTime gameTime) {
-        if (_elapsedTime <= 0) {
-            _elapsedTime = 0;
+        if (RedWon || BlueWon) {
             return;
         }
         if (_timeSincePause > 0) {
@@ -74,7 +84,18 @@ public class ScoreBar : UI {
             }
             return;
         }
-        _elapsedTime -= gameTime.GetElapsedSeconds();
+        if (_overtime) {
+            _elapsedTime += gameTime.GetElapsedSeconds();
+            return;
+        }
+        _elapsedTime -= gameTime.GetElapsedSeconds() * 60;
+        if (_elapsedTime < 0) {
+            _elapsedTime = 0;
+            _overtime = true;
+            if (!Game.CheckWin()) {
+                Game.NewRound();
+            }
+        }
     }
 
     public override void Draw(SpriteBatch spriteBatch) {
@@ -87,7 +108,7 @@ public class ScoreBar : UI {
             Game.Font, 
             StringTime, 
             new(DrawPos.X + Texture.Width / 2 - strDimensions.X / 2 + xAdj, DrawPos.Y + Texture.Height / 2 - strDimensions.Y / 2 + yAdj), 
-            Color.White
+            _overtime ? Color.Red : Color.White
 
         );
         if (BlueScore > 0) {

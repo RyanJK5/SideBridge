@@ -11,6 +11,7 @@ using MonoGame.Extended.TextureAtlases;
 using MonoGame.Extended.Input.InputListeners;
 using MonoGame.Extended.ViewportAdapters;
 using System.Collections.Generic;
+using MonoGame.Extended.Tiled;
 
 namespace SideBridge;
 
@@ -96,32 +97,55 @@ public class Game : Microsoft.Xna.Framework.Game {
 
     public static Matrix GetViewMatrix() => s_main._camera.GetViewMatrix();
 
-    public static void ScoreGoal(Player player) {
+    public static bool ScoreGoal(Player player) {
         var scoreBar = s_main._scoreBar;
-        if (scoreBar.BlueScore == ScoreBar.MaxScore || scoreBar.RedScore == ScoreBar.MaxScore) {
-            return;
+        if (scoreBar.RedWon || scoreBar.BlueWon) {
+            return false;
         }
-        NewRound();
         if (player == Player1) {
             scoreBar.BlueScore++;
-            if (scoreBar.BlueScore == ScoreBar.MaxScore) {
-                EndGame(Team.Blue);
-            }
-            return;
         }
-        scoreBar.RedScore++;
-        if (scoreBar.RedScore == ScoreBar.MaxScore) {
-                EndGame(Team.Red);
+        else {
+            scoreBar.RedScore++;
         }
+        if (!CheckWin()) {
+            NewRound();
+        }
+        return true;
+    }
+
+    public static bool CheckWin() {
+       var scoreBar = s_main._scoreBar;
+        if (scoreBar.BlueWon) {
+            EndGame(Team.Blue);
+            return true;
+        }
+        if (scoreBar.RedWon) {
+            EndGame(Team.Red);
+            return true;
+        }
+        return false;
     }
 
     public static void EndGame(Team team) {
         GetSoundEffect(SoundEffectID.Win).CreateInstance().Play();
         StartRound();
+
+        var tiledWord = s_main._tiledWorld;
         if (team == Team.Blue) {
+            Player1.OnDeath();
+            Player2.Bounds.Position = new(
+                tiledWord.WidthInPixels / 2 - Player2.Bounds.Width / 2, 
+                tiledWord.HeightInPixels / 2 - Player2.Bounds.Height / 2
+            );
             RemoveEntity(Player2);
         }
         else {
+            Player2.OnDeath();
+            Player1.Bounds.Position = new(
+                tiledWord.WidthInPixels / 2 - Player1.Bounds.Width / 2, 
+                tiledWord.HeightInPixels / 2 - Player1.Bounds.Height / 2
+            );
             RemoveEntity(Player1);
         }
     }
@@ -149,12 +173,8 @@ public class Game : Microsoft.Xna.Framework.Game {
     }
 
     private void SetPlatforms(bool destroy) {
-        var tileType1 = TileType.Glass;
-        var tileType2 = TileType.White;
-        if (destroy) {
-            tileType1 = TileType.Air;
-            tileType2 = TileType.Air;
-        }
+        var tileType1 = destroy ? TileType.Air : TileType.Glass;
+        var tileType2 = destroy ? TileType.Air : TileType.White;
         
         Player[] players = {Player1, Player2};
         foreach (var player in players) {

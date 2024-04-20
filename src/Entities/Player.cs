@@ -104,9 +104,7 @@ public class Player : Entity {
 
     public override void OnTileCollision(Tile tile) {
         if (tile.Type == TileType.Goal) {
-            if (Game.GetGoalTeam(tile) != Team) {
-                Game.ScoreGoal(this);
-            } else {
+            if (Game.GetGoalTeam(tile) == Team || !Game.ScoreGoal(this)) {
                 OnDeath();
             }
             return;
