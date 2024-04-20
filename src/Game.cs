@@ -160,6 +160,11 @@ public class Game : Microsoft.Xna.Framework.Game {
     public static Player GetOtherPlayer(Team thisTeam) =>
         thisTeam == Team.Red ? Player1 : Player2;
 
+    public static void Overtime() {
+        s_main._tiledWorld.Reset();
+        NewRound();
+    }
+
     public static void NewRound() {
         Player1.OnDeath();
         Player2.OnDeath();

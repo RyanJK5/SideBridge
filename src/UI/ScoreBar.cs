@@ -93,7 +93,7 @@ public class ScoreBar : UI {
             _elapsedTime = 0;
             _overtime = true;
             if (!Game.CheckWin()) {
-                Game.NewRound();
+                Game.Overtime();
             }
         }
     }

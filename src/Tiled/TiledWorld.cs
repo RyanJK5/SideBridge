@@ -18,6 +18,7 @@ public class TiledWorld : SimpleDrawableGameComponent {
     public int HeightInPixels { get => Height * _tileSet.TileSize; }
     public int TileSize { get => _tileSet.TileSize; }
 
+    private readonly Tile[] _initTileGrid;
     private Tile[] _tileGrid;
 
     public TiledWorld(GraphicsDevice graphicsDevice, TileSet tileSet, int width, int height) {
@@ -25,6 +26,7 @@ public class TiledWorld : SimpleDrawableGameComponent {
         Height = height;
         _tileSet = tileSet;
         _spriteBatch = new(graphicsDevice);
+        _initTileGrid = new Tile[width * height];
         _tileGrid = new Tile[width * height];
     }
     
@@ -134,6 +136,9 @@ public class TiledWorld : SimpleDrawableGameComponent {
             var tile = new Tile((TileType) tiledMapTile.GlobalIdentifier, 
                 new(tiledMapTile.X * tileSize, tiledMapTile.Y * tileSize, tileSize, tileSize));
             _tileGrid[i] = tile;
+            _initTileGrid[i] = tile;
         }
     }
+
+    public void Reset() => _tileGrid = _initTileGrid;
 }
