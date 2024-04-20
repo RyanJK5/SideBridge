@@ -55,7 +55,6 @@ public class ScoreBar : UI {
     }
 
     private float _timeSincePause;
-    private float _timeSincePauseMod;
 
     private float _elapsedTime;
     private bool _overtime;
@@ -75,10 +74,9 @@ public class ScoreBar : UI {
         }
         if (_timeSincePause > 0) {
             _timeSincePause -= gameTime.GetElapsedSeconds();
-            if (_timeSincePause % 1 > _timeSincePauseMod) {
+            if (_timeSincePause % 1 > (_timeSincePause + gameTime.GetElapsedSeconds()) % 1) {
                 Game.GetSoundEffect(SoundEffectID.Tick).CreateInstance().Play();
             }
-            _timeSincePauseMod = _timeSincePause % 1;
             if (_timeSincePause <= 0) {
                 Game.StartRound();
             }
@@ -89,6 +87,9 @@ public class ScoreBar : UI {
             return;
         }
         _elapsedTime -= gameTime.GetElapsedSeconds();
+        if (_elapsedTime < 1 && _elapsedTime + gameTime.GetElapsedSeconds() > 1) {
+            Game.GetSoundEffect(SoundEffectID.Tick).CreateInstance().Play();
+        }
         if (_elapsedTime < 0) {
             _elapsedTime = 0;
             _overtime = true;
