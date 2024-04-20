@@ -133,31 +133,32 @@ public class Game : Microsoft.Xna.Framework.Game {
         _graphics.PreferredBackBufferHeight = 1080;
         _graphics.ApplyChanges();
         _entityWorld = new(GraphicsDevice);
-        _soundEffects = new SoundEffect[System.Enum.GetValues(typeof(SoundEffectID)).Length];
+        _soundEffects = new SoundEffect[Enum.GetValues(typeof(SoundEffectID)).Length];
         base.Initialize();
     }
 
     protected override void LoadContent() {
         _spriteBatch = new(GraphicsDevice);
         
-        _soundEffects[(int) SoundEffectID.PlaceBlock] = Content.Load<SoundEffect>("placeblock");
-        _soundEffects[(int) SoundEffectID.BreakBlock] = Content.Load<SoundEffect>("breakblock");
+        _soundEffects[(int) SoundEffectID.PlaceBlock] = Content.Load<SoundEffect>("sfx/placeblock");
+        _soundEffects[(int) SoundEffectID.BreakBlock] = Content.Load<SoundEffect>("sfx/breakblock");
+        _soundEffects[(int) SoundEffectID.ArrowHit] = Content.Load<SoundEffect>("sfx/arrowhit");
         
         Font = Content.Load<SpriteFont>("font");
 
-        var hotbarTexture = Content.Load<Texture2D>("hotbar");
-        var fullTexture = Content.Load<Texture2D>("healthbar-full"); 
-        var emptyTexture = Content.Load<Texture2D>("healthbar-empty");
-        var bonusTexture = Content.Load<Texture2D>("healthbar-golden");
+        var hotbarTexture = Content.Load<Texture2D>("img/hotbar");
+        var fullTexture = Content.Load<Texture2D>("img/healthbar-full"); 
+        var emptyTexture = Content.Load<Texture2D>("img/healthbar-empty");
+        var bonusTexture = Content.Load<Texture2D>("img/healthbar-golden");
 
-        var tileSet = new TileSet(Content.Load<Texture2D>("blocks"), 3, 2);
+        var tileSet = new TileSet(Content.Load<Texture2D>("img/blocks"), 3, 2);
         _tiledWorld = new TiledWorld(GraphicsDevice, tileSet, 61, 27);
         _tiledWorld.LoadMap(Content, WorldType.Default);
 
-        Arrow.ArrowTexture = Content.Load<Texture2D>("arrow");
+        Arrow.ArrowTexture = Content.Load<Texture2D>("img/arrow");
 
 
-        var playerTexture = Content.Load<Texture2D>("player");
+        var playerTexture = Content.Load<Texture2D>("img/player");
         
         var hotbarDrawPos = new Vector2(WindowWidth / 2 - hotbarTexture.Width / 2, 0);
         var hotbar1 = new Hotbar(hotbarTexture, hotbarDrawPos);
@@ -173,12 +174,12 @@ public class Game : Microsoft.Xna.Framework.Game {
         Player2 = new Player(playerTexture, hotbar2, healthBar2, new(0, 0, playerTexture.Width, playerTexture.Height), Team.Red);
         AddEntity(Player2);
 
-        _scoreBar = new ScoreBar(Content.Load<Texture2D>("scorebar-full"), Content.Load<Texture2D>("scorebar-empty"), 
+        _scoreBar = new ScoreBar(Content.Load<Texture2D>("img/scorebar-full"), Content.Load<Texture2D>("img/scorebar-empty"), 
             new(hotbarDrawPos.X, hotbarDrawPos.Y + hotbarTexture.Height + 5));
 
         _camera.LookAt(new(MapWidth / 2, MapHeight / 2));
 
-        _blockParticleEffects = new ParticleEffect[TileType.GetValues(typeof(TileType)).Length];
+        _blockParticleEffects = new ParticleEffect[Enum.GetValues(typeof(TileType)).Length];
         _blockParticleEffects[(int) TileType.Blue] = CreateParticleEffect(new Color(61, 50, 76));
         _blockParticleEffects[(int) TileType.Red] = CreateParticleEffect(new Color(124, 54, 39));
         _blockParticleEffects[(int) TileType.White] = CreateParticleEffect(new Color(136, 115, 105));

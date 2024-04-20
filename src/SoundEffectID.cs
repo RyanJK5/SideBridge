@@ -2,5 +2,6 @@ namespace SideBridge;
 
 public enum SoundEffectID {
     PlaceBlock,
-    BreakBlock
+    BreakBlock,
+    ArrowHit
 }

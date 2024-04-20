@@ -89,6 +89,7 @@ public class Player : Entity {
         if (other is Arrow arrow && arrow.PlayerTeam != Team && Game.ContainsEntity(arrow)) {
             RegisterDamage(arrow.Damage);
             RegisterArrowKnockback(arrow);
+            Game.GetSoundEffect(SoundEffectID.ArrowHit).CreateInstance().Play();
             Game.RemoveEntity(arrow);
         }
     }
