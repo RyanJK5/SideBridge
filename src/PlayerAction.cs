@@ -5,5 +5,9 @@ public enum PlayerAction {
     Right, 
     Sprint,
     Jump,
-    Void
+    Void,
+    Hotbar1,
+    Hotbar2,
+    Hotbar3,
+    Hotbar4
 }

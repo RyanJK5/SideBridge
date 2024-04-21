@@ -59,10 +59,10 @@ public class Player : Entity {
 
     public Player(Texture2D texture, Hotbar hotbar, HealthBar healthBar, RectangleF bounds, Team team) : base(texture, bounds) {
         if (team == Team.Blue) {
-            _keyInputs = new Keys[] { Keys.A, Keys.D, Keys.LeftShift, Keys.W, Keys.Q };
+            _keyInputs = new Keys[] { Keys.A, Keys.D, Keys.LeftShift, Keys.W, Keys.Q, Keys.D1, Keys.D2, Keys.D3, Keys.D4};
         }
         else {
-            _keyInputs = new Keys[] { Keys.Left, Keys.Right, Keys.RightControl, Keys.Up, Keys.NumPad0};
+            _keyInputs = new Keys[] { Keys.Left, Keys.Right, Keys.RightControl, Keys.Up, Keys.NumPad0, Keys.D5, Keys.D6, Keys.D7, Keys.D8};
         }
         
         _hotbar = hotbar;
@@ -72,6 +72,9 @@ public class Player : Entity {
         var mouseListener = new MouseListener();
         mouseListener.MouseDown += TryUseSword;
 
+        for (var i = (int) PlayerAction.Hotbar1; i <= (int) PlayerAction.Hotbar4; i++) {
+            _hotbar.SetSlotBind(i - (int) PlayerAction.Hotbar1, _keyInputs[i]);
+        }
 
         var keyListener = new KeyboardListener();
         keyListener.KeyPressed += (sender, args) => {

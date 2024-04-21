@@ -23,17 +23,17 @@ public class Hotbar : UI {
         spriteBatch.FillRectangle(new RectangleF(DrawPos.X + ActiveSlot * SlotSize, DrawPos.Y, SlotSize, SlotSize), Color.White * 0.5f);
     }
 
-    public InputListener[] CreateInputListeners() {
+    public void SetSlotBind(int slot, Keys key) {
         var keyListener = new KeyboardListener();
         keyListener.KeyPressed += (sender, args) => {
-            if (args.Key > Keys.D0 && args.Key <= Keys.D9) {
-                ActiveSlot = args.Key - Keys.D1;
-                if (ActiveSlot > SlotNum) {
-                    ActiveSlot = SlotNum;
-                }
+            if (args.Key == key) {
+                ActiveSlot = slot;
             }
         };
-        
+        Game.AddListeners(keyListener);
+    }
+
+    public InputListener CreateInputListeners() {
         var mouseListener = new MouseListener();
         mouseListener.MouseWheelMoved += (sender, args) => {
             if (args.ScrollWheelDelta > 0) {
@@ -48,6 +48,6 @@ public class Hotbar : UI {
             }
         };
 
-        return new InputListener[] { keyListener, mouseListener };
+        return mouseListener;
     }
 }
