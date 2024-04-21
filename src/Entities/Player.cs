@@ -18,7 +18,7 @@ public class Player : Entity {
     private const float Gravity = 1f;
 
     private const float HorizontalAcceleration = 1f;
-    private const float HorizontalAirAcceleration = 0.5f;
+    private const float HorizontalAirAcceleration = 0.2f;
     private const float Friction = 1f;
     private const float AirResistance = 0.2f;
 
@@ -36,6 +36,7 @@ public class Player : Entity {
 
     public float TimeSinceBowShot = ArrowCooldown;
     private bool _mouseDown;
+    private bool _knockedBack;
     private float _bowCharge = 1;
     private float _potionCharge;
     private float _voidCharge;
@@ -194,6 +195,7 @@ public class Player : Entity {
         Velocity = arrow.Velocity / 5f;
         Velocity.Y = -2f;
         _sprintKeyDown = false;
+        _knockedBack = true;
     }
 
     private void RegisterSwordKnockback(Player player) {
@@ -206,6 +208,7 @@ public class Player : Entity {
             knockback.X *= 2f;
         }
         Velocity = knockback;
+        _knockedBack = true;
     }
 
     public void OnDeath() {
@@ -232,7 +235,6 @@ public class Player : Entity {
             _potionCharge = 0;
         }
 
-
         switch (_hotbar.ActiveSlot) {
             case 1:
                 TryShootBow(gameTime);
@@ -248,10 +250,10 @@ public class Player : Entity {
     }
 
     private void UpdatePosition() {
-        if (_bowCharge > 1 || _potionCharge > 0 || _voidCharge > 0) {
+        if (!_knockedBack && (_bowCharge > 1 || _potionCharge > 0 || _voidCharge > 0)) {
             Bounds.X += Velocity.X / 4;
         }
-        else if (Sprinting) {
+        else if (!_knockedBack && Sprinting) {
             Bounds.X += Velocity.X * 1.5f;
         }
         else {
@@ -422,26 +424,30 @@ public class Player : Entity {
         var addedVelocity = 0f;
         float maxVelocity = MaximumHorizontalVelocity;
         
-        if (leftDown && !(rightDown && Velocity.X <= 0) && (OnGround || MathF.Abs(Velocity.X) < MaximumWalkingVelocity)) {
-            addedVelocity -= OnGround ? HorizontalAcceleration : HorizontalAirAcceleration;
-            maxVelocity = OnGround ? MaximumWalkingVelocity : MaximumHorizontalVelocity;
-        }
-        else if (rightDown && !(leftDown && Velocity.X >= 0) && (OnGround || MathF.Abs(Velocity.X) < MaximumWalkingVelocity)) {
-            addedVelocity += OnGround ? HorizontalAcceleration : HorizontalAirAcceleration;
-            maxVelocity = OnGround ? MaximumWalkingVelocity : MaximumHorizontalVelocity;
-        }
-        if (!leftDown && !rightDown) {
+        if (leftDown == rightDown || MathF.Abs(Velocity.X) > MaximumWalkingVelocity) {
             if (Velocity.X < 0) {
-                addedVelocity += OnGround ? Friction : AirResistance;
+                addedVelocity = OnGround ? Friction : AirResistance;
             }
             else if (Velocity.X > 0) {
-                addedVelocity -= OnGround ? Friction : AirResistance;
+                addedVelocity = OnGround ? -Friction : -AirResistance;
             }
-            maxVelocity = 0;
+            UpdateVelocity(addedVelocity, 0, 0, MaximumVerticalVelocity);
+            return;
+        }
+        else if (_knockedBack && MathF.Abs(Velocity.X) <= MaximumWalkingVelocity) {
+            _knockedBack = false;
+        }
+
+        if (leftDown && !rightDown && Velocity.X >= -MaximumWalkingVelocity) {
+            addedVelocity = OnGround ? -HorizontalAcceleration : -HorizontalAirAcceleration;
+            maxVelocity = OnGround ? MaximumWalkingVelocity : MaximumHorizontalVelocity;
+        }
+        if (rightDown && !leftDown && Velocity.X <= MaximumWalkingVelocity) {
+            addedVelocity = OnGround ? HorizontalAcceleration : HorizontalAirAcceleration;
+            maxVelocity = OnGround ? MaximumWalkingVelocity : MaximumHorizontalVelocity;
         }
         
         UpdateVelocity(addedVelocity, 0, maxVelocity, MaximumVerticalVelocity);
-        Console.WriteLine(Velocity.X);
     }
 
     private void SetVerticalVelocity() {
