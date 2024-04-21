@@ -134,6 +134,7 @@ public class Game : Microsoft.Xna.Framework.Game {
         var tiledWord = s_main._tiledWorld;
         if (team == Team.Blue) {
             Player1.OnDeath();
+            Player2.OnDeath();
             Player2.Bounds.Position = new(
                 tiledWord.WidthInPixels / 2 - Player2.Bounds.Width / 2, 
                 tiledWord.HeightInPixels / 2 - Player2.Bounds.Height / 2
@@ -142,6 +143,7 @@ public class Game : Microsoft.Xna.Framework.Game {
         }
         else {
             Player2.OnDeath();
+            Player1.OnDeath();
             Player1.Bounds.Position = new(
                 tiledWord.WidthInPixels / 2 - Player1.Bounds.Width / 2, 
                 tiledWord.HeightInPixels / 2 - Player1.Bounds.Height / 2
@@ -240,8 +242,11 @@ public class Game : Microsoft.Xna.Framework.Game {
         _soundEffects[(int) SoundEffectID.Tick] = Content.Load<SoundEffect>("sfx/tick");
         _soundEffects[(int) SoundEffectID.Win] = Content.Load<SoundEffect>("sfx/win");
         
-        for (var i = 0; i <= (int) SoundEffectID.Block8; i++) {
+        for (var i = (int) SoundEffectID.Block1; i <= (int) SoundEffectID.Block8; i++) {
             _soundEffects[i] = Content.Load<SoundEffect>("sfx/block" + (i+1));
+        }
+        for (var i = (int) SoundEffectID.Bow1; i <= (int) SoundEffectID.Bow6; i++) {
+            _soundEffects[i] = Content.Load<SoundEffect>("sfx/bow" + (i + 1 - (int) SoundEffectID.Bow1));
         }
         _soundEffects[(int) SoundEffectID.BreakBlock] = Content.Load<SoundEffect>("sfx/breakblock");
 

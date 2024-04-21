@@ -304,6 +304,8 @@ public class Player : Entity {
                 _bowCharge / 9f,
                 Team
             );
+            Game.GetSoundEffect(SoundEffects.GetRandomBowSound()).Play();
+
             
             var mousePos = Game.ScreenToWorld(mouseState.Position.ToVector2());
             var vec = new Vector2(mousePos.X, mousePos.Y) - spawnPos;

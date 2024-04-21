@@ -188,6 +188,42 @@
 /processorParam:Quality=Best
 /build:sfx/block8.ogg
 
+#begin sfx/bow1.ogg
+/importer:OggImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:sfx/bow1.ogg
+
+#begin sfx/bow2.ogg
+/importer:OggImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:sfx/bow2.ogg
+
+#begin sfx/bow3.ogg
+/importer:OggImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:sfx/bow3.ogg
+
+#begin sfx/bow4.ogg
+/importer:OggImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:sfx/bow4.ogg
+
+#begin sfx/bow5.ogg
+/importer:OggImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:sfx/bow5.ogg
+
+#begin sfx/bow6.ogg
+/importer:OggImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:sfx/bow6.ogg
+
 #begin sfx/breakblock.mp3
 /importer:Mp3Importer
 /processor:SoundEffectProcessor
