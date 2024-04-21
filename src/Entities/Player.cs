@@ -15,8 +15,12 @@ public class Player : Entity {
     private const float MaximumVerticalVelocity = 15f;
     private const float MaximumWalkingVelocity = 5f;
     private const float MaximumHorizontalVelocity = 20f;
-    private const float VerticalAcceleration = 1f;
+    private const float Gravity = 1f;
+
     private const float HorizontalAcceleration = 1f;
+    private const float HorizontalAirAcceleration = 0.5f;
+    private const float Friction = 1f;
+    private const float AirResistance = 0.2f;
 
     private const float SwordDamge = 6f;
     private const float SwordCriticalDamage = 7.5f;
@@ -173,7 +177,7 @@ public class Player : Entity {
         for (int i = 0; i < 20; i++) {
             pos.X += vec.X;
             pos.Y += vec.Y;
-            vec.Y += VerticalAcceleration;
+            vec.Y += Gravity;
             spriteBatch.DrawCircle(pos, 5, 100, Color.White, 10f);
         }
     }
@@ -414,26 +418,30 @@ public class Player : Entity {
     private void SetHorizontalVelocity() {
         bool leftDown = Keyboard.GetState().IsKeyDown(_keyInputs[(int) PlayerAction.Left]);
         bool rightDown = Keyboard.GetState().IsKeyDown(_keyInputs[(int) PlayerAction.Right]);
-        if (leftDown && !(rightDown && Velocity.X <= 0)) {
-            UpdateVelocity(-HorizontalAcceleration, 0, MaximumWalkingVelocity, MaximumVerticalVelocity);
+        
+        var addedVelocity = 0f;
+        float maxVelocity = MaximumHorizontalVelocity;
+        
+        if (leftDown && !(rightDown && Velocity.X <= 0) && (OnGround || MathF.Abs(Velocity.X) < MaximumWalkingVelocity)) {
+            addedVelocity -= OnGround ? HorizontalAcceleration : HorizontalAirAcceleration;
+            maxVelocity = OnGround ? MaximumWalkingVelocity : MaximumHorizontalVelocity;
         }
-        else if (!leftDown && Velocity.X <= 0 && OnGround) {
-            UpdateVelocity(HorizontalAcceleration, 0, 0, MaximumVerticalVelocity);
+        else if (rightDown && !(leftDown && Velocity.X >= 0) && (OnGround || MathF.Abs(Velocity.X) < MaximumWalkingVelocity)) {
+            addedVelocity += OnGround ? HorizontalAcceleration : HorizontalAirAcceleration;
+            maxVelocity = OnGround ? MaximumWalkingVelocity : MaximumHorizontalVelocity;
         }
-        if (rightDown && !(leftDown && Velocity.X >= 0)) {
-            UpdateVelocity(HorizontalAcceleration, 0, MaximumWalkingVelocity, MaximumVerticalVelocity);
-        }
-        else if (!rightDown && Velocity.X >= 0 && OnGround) {
-            UpdateVelocity(-HorizontalAcceleration, 0, 0, MaximumVerticalVelocity);
-        }
-        if (!leftDown && !rightDown && Velocity.X != 0 && OnGround) {
+        if (!leftDown && !rightDown) {
             if (Velocity.X < 0) {
-                UpdateVelocity(HorizontalAcceleration, 0, 0, MaximumVerticalVelocity);
+                addedVelocity += OnGround ? Friction : AirResistance;
             }
-            else {
-                UpdateVelocity(-HorizontalAcceleration, 0, 0, MaximumVerticalVelocity);
+            else if (Velocity.X > 0) {
+                addedVelocity -= OnGround ? Friction : AirResistance;
             }
+            maxVelocity = 0;
         }
+        
+        UpdateVelocity(addedVelocity, 0, maxVelocity, MaximumVerticalVelocity);
+        Console.WriteLine(Velocity.X);
     }
 
     private void SetVerticalVelocity() {
@@ -443,7 +451,7 @@ public class Player : Entity {
             }
         }
         else {
-            UpdateVelocity(0, VerticalAcceleration);
+            UpdateVelocity(0, Gravity);
         }
     }
 
