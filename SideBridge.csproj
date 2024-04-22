@@ -22,6 +22,7 @@
     <PackageReference Include="monogame.content.builder.task" Version="3.8.0.1641" />
     <PackageReference Include="MonoGame.Extended" Version="3.8.0" />
     <PackageReference Include="MonoGame.Extended.Collisions" Version="3.8.0" />
+    <PackageReference Include="MonoGame.Extended.Content.Pipeline" Version="3.8.0" />
     <PackageReference Include="MonoGame.Extended.Entities" Version="3.8.0" />
     <PackageReference Include="MonoGame.Extended.Graphics" Version="3.8.0" />
     <PackageReference Include="MonoGame.Extended.Input" Version="3.8.0" />
