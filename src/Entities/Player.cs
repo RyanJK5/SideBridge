@@ -16,7 +16,7 @@ public class Player : Entity {
     private const float Gravity = 1f;
 
     private const float HorizontalAcceleration = 1f;
-    private const float HorizontalAirAcceleration = 0.2f;
+    private const float HorizontalAirAcceleration = 0.4f;
     private const float Friction = 1f;
     private const float AirResistance = 0.2f;
 
@@ -33,12 +33,16 @@ public class Player : Entity {
     private const float VoidTime = 1f;
     public const float ArrowCooldown = 3f;
 
+    private const float SprintingSoundDelay = 0.3f;
+    private const float WalkingSoundDelay = 0.45f;
+
     public float TimeSinceBowShot = ArrowCooldown;
     private bool _mouseDown;
     private bool _knockedBack;
     private float _bowCharge = 1;
     private float _potionCharge;
     private float _voidCharge;
+    private float _walkTime;
 
     public float Health { get; private set; }
     private readonly Keys[] _keyInputs;
@@ -103,7 +107,7 @@ public class Player : Entity {
             RegisterArrowKnockback(arrow);
             RegisterDamage(arrow.Damage);
             if (Health != MaxRedHealth) {
-                Game.GetSoundEffect(SoundEffectID.ArrowHit).CreateInstance().Play();
+                Game.GetSoundEffect(SoundEffectID.ArrowHit).Play();
             }
             Game.RemoveEntity(arrow);
         }
@@ -128,6 +132,7 @@ public class Player : Entity {
                 Bounds.X += intersection.Width;
             }
             Velocity.X = 0;
+            _walkTime = 0;
         }
         else {
             if (Bounds.Y < otherBounds.Y) { 
@@ -186,7 +191,7 @@ public class Player : Entity {
         Health -= dmg;
         if (Health <= 0) {
             OnDeath();
-            Game.GetSoundEffect(SoundEffectID.Kill).CreateInstance().Play();
+            Game.GetSoundEffect(SoundEffectID.Kill).Play();
         }
     }
 
@@ -223,6 +228,18 @@ public class Player : Entity {
         UpdatePosition();
         ResetPositions();
 
+        if (OnGround && Velocity.X != 0) {
+            _walkTime += gameTime.GetElapsedSeconds();
+            if (_walkTime >= (Sprinting ? SprintingSoundDelay : WalkingSoundDelay)) { 
+                _walkTime = 0;
+                SoundEffectInstance walkSound = Game.GetSoundEffect(SoundEffects.GetRandomWalkSound()).CreateInstance();
+                walkSound.Volume = 0.2f;
+                walkSound.Play();
+            }
+        }
+        else{
+            _walkTime = SprintingSoundDelay;
+        }
         if (TimeSinceBowShot < ArrowCooldown) {
             TimeSinceBowShot += gameTime.GetElapsedSeconds();
         }
@@ -281,7 +298,7 @@ public class Player : Entity {
             player.RegisterSwordKnockback(this);
             player.RegisterDamage(OnGround ? SwordDamge : SwordCriticalDamage);
             if (player.Health != MaxRedHealth) {
-                Game.GetSoundEffect(SoundEffectID.SwordHit).CreateInstance().Play();
+                Game.GetSoundEffect(SoundEffectID.SwordHit).Play();
             }
         }
         

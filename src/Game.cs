@@ -228,27 +228,17 @@ public class Game : Microsoft.Xna.Framework.Game {
         _graphics.PreferredBackBufferHeight = 1080;
         _graphics.ApplyChanges();
         _entityWorld = new(GraphicsDevice);
-        _soundEffects = new SoundEffect[Enum.GetValues(typeof(SoundEffectID)).Length];
+        _soundEffects = new SoundEffect[Enum.GetValues<SoundEffectID>().Length];
         base.Initialize();
     }
 
     protected override void LoadContent() {
         _spriteBatch = new(GraphicsDevice);
         
-        _soundEffects[(int) SoundEffectID.ArrowHit] = Content.Load<SoundEffect>("sfx/arrowhit");
-        _soundEffects[(int) SoundEffectID.SwordHit] = Content.Load<SoundEffect>("sfx/swordhit");
-        _soundEffects[(int) SoundEffectID.Kill] = Content.Load<SoundEffect>("sfx/kill");
-        _soundEffects[(int) SoundEffectID.Tick] = Content.Load<SoundEffect>("sfx/tick");
-        _soundEffects[(int) SoundEffectID.Win] = Content.Load<SoundEffect>("sfx/win");
-        
-        for (var i = (int) SoundEffectID.Block1; i <= (int) SoundEffectID.Block8; i++) {
-            _soundEffects[i] = Content.Load<SoundEffect>("sfx/block" + (i+1));
+        SoundEffectID[] soundEffectIDs = Enum.GetValues<SoundEffectID>();
+        for (var i = 0; i < soundEffectIDs.Length; i++) {
+            _soundEffects[i] = Content.Load<SoundEffect>("sfx/" + soundEffectIDs[i].ToString().ToLower());
         }
-        for (var i = (int) SoundEffectID.Bow1; i <= (int) SoundEffectID.Bow6; i++) {
-            _soundEffects[i] = Content.Load<SoundEffect>("sfx/bow" + (i + 1 - (int) SoundEffectID.Bow1));
-        }
-        _soundEffects[(int) SoundEffectID.BreakBlock] = Content.Load<SoundEffect>("sfx/breakblock");
-
 
         Font = Content.Load<SpriteFont>("font");
 
