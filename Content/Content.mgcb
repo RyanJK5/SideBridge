@@ -301,3 +301,9 @@
 /processor:SoundEffectProcessor
 /processorParam:Quality=Best
 /build:sfx/void.ogg
+
+#begin sfx/goal.ogg
+/importer:OggImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:sfx/goal.ogg

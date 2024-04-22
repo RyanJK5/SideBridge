@@ -30,7 +30,8 @@ public enum SoundEffectID {
     Tick,
     Win,
     Eat,
-    Void
+    Void,
+    Goal
 }
 
 public static class SoundEffects {

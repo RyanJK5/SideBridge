@@ -28,7 +28,7 @@ public class Player : Entity {
     private const int HeightLimit = 8;
     private const int IslandWidths = 10;
 
-    public const float ArrowCooldown = 3f;
+    public const float BowCooldown = 3f;
     private const float MaxBowCharge = 45f;
 
     private const float AppleEatTime = 1.5f;
@@ -44,7 +44,7 @@ public class Player : Entity {
     private bool _knockedBack;
 
     private float _bowCharge = 1;
-    public float TimeSinceBow = ArrowCooldown;
+    public float TimeSinceBow = BowCooldown;
     
     private float _appleCharge;
     private float _timeSinceApple;
@@ -134,6 +134,7 @@ public class Player : Entity {
     public override void OnTileCollision(Tile tile) {
         if (tile.Type == TileType.Goal) {
             if (Game.GetGoalTeam(tile) == Team || !Game.ScoreGoal(this)) {
+                Game.GetSoundEffect(SoundEffectID.Goal).Play();
                 OnDeath();
             }
             return;
@@ -238,6 +239,11 @@ public class Player : Entity {
         Velocity = Vector2.Zero;
         Bounds.Position = SpawnPosition;
         _sprintKeyDown = true;
+        _bowCharge = 1f;
+        TimeSinceBow = BowCooldown;
+        _appleCharge = 0;
+        _timeSinceApple = 0;
+        _eatSound.Stop();
     }
 
     public override void Update(GameTime gameTime) {
@@ -260,7 +266,7 @@ public class Player : Entity {
         else{
             _walkTime = SprintingSoundDelay;
         }
-        if (TimeSinceBow < ArrowCooldown) {
+        if (TimeSinceBow < BowCooldown) {
             TimeSinceBow += gameTime.GetElapsedSeconds();
         }
         if (_hotbar.ActiveSlot != 1 && _bowCharge > 1) {
@@ -329,7 +335,7 @@ public class Player : Entity {
     }
 
     private void TryShootBow(GameTime gameTime) {
-        if (TimeSinceBow < ArrowCooldown) {
+        if (TimeSinceBow < BowCooldown) {
             return;
         }
         var mouseState = Mouse.GetState();
