@@ -256,22 +256,21 @@ public class Game : Microsoft.Xna.Framework.Game {
         var playerTexture = Content.Load<Texture2D>("img/player");
         
         var hotbarDrawPos = new Vector2(WindowWidth / 2 - hotbarTexture.Width / 2, 0);
-        var hotbar1 = new Hotbar(hotbarTexture, hotbarDrawPos);
+        var hotbar1 = new Hotbar(hotbarTexture, hotbarDrawPos, Team.Blue);
         var healthBar1 = new HealthBar(fullTexture, emptyTexture, bonusTexture, new(10, 10));
         Components.Add(new InputListenerComponent(this, hotbar1.CreateInputListeners()));
         Player1 = new Player(playerTexture, hotbar1, healthBar1, new(0, 0, playerTexture.Width, playerTexture.Height), Team.Blue);
         AddEntity(Player1);
 
         
-        var hotbar2 = new Hotbar(hotbarTexture, new(WindowWidth / 2 - hotbarTexture.Width / 2, WindowHeight - hotbarTexture.Height));
+        var hotbar2 = new Hotbar(hotbarTexture, new(WindowWidth / 2 - hotbarTexture.Width / 2, WindowHeight - hotbarTexture.Height / 2), Team.Red);
         var healthBar2 = new HealthBar(fullTexture, emptyTexture, bonusTexture, new(WindowWidth - 10 - fullTexture.Width, WindowHeight - fullTexture.Height - 10));
         Components.Add(new InputListenerComponent(this, hotbar2.CreateInputListeners()));
         Player2 = new Player(playerTexture, hotbar2, healthBar2, new(0, 0, playerTexture.Width, playerTexture.Height), Team.Red);
         AddEntity(Player2);
 
         _scoreBar = new ScoreBar(Content.Load<Texture2D>("img/scorebar-full"), Content.Load<Texture2D>("img/scorebar-empty"), 
-            new(hotbarDrawPos.X, hotbarDrawPos.Y + hotbarTexture.Height + 5));
-
+            new(hotbarDrawPos.X, hotbarDrawPos.Y + hotbarTexture.Height / 2 + 5));
 
         _camera.LookAt(new(MapWidth / 2, MapHeight / 2));
 

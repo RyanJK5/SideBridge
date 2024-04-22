@@ -12,12 +12,21 @@ public class Hotbar : UI {
     public int ActiveSlot;
     public int SlotSize { get => Texture.Width / SlotNum; }
 
-    public Hotbar(Texture2D texture, Vector2 drawPos) : base(texture, drawPos) { }
+    private Team _team;
+
+    public Hotbar(Texture2D texture, Vector2 drawPos, Team team) : base(texture, drawPos) {
+        _team = team;
+    }
 
     public override void Draw(SpriteBatch spriteBatch) {
-        spriteBatch.Draw(Texture, DrawPos, Color.White);
+        spriteBatch.Draw(
+            Texture, 
+            DrawPos,
+            new Rectangle(0, _team == Team.Red ? Texture.Height / 2 : 0, Texture.Width, Texture.Height / 2),
+            Color.White
+        );
 
-        var offset = (DrawPos.Y + Texture.Height >= Game.WindowHeight) ? -5 : Texture.Height;
+        var offset = (DrawPos.Y + Texture.Height / 2 >= Game.WindowHeight) ? -5 : Texture.Height / 2;
         spriteBatch.DrawPercentageBar(new RectangleF(DrawPos.X, DrawPos.Y + offset, Texture.Width, 5), 
             Game.Player1.TimeSinceBowShot / Player.ArrowCooldown);
         spriteBatch.FillRectangle(new RectangleF(DrawPos.X + ActiveSlot * SlotSize, DrawPos.Y, SlotSize, SlotSize), Color.White * 0.5f);

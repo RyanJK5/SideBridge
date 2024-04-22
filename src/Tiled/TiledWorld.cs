@@ -45,7 +45,8 @@ public class TiledWorld : SimpleDrawableGameComponent {
                 tilePos,
                 new Rectangle((blockIndex + _tileSet.Width) % _tileSet.Width * tileSize, 
                 blockIndex / _tileSet.Width * tileSize, tileSize, tileSize), 
-                Color.White);
+                Color.White
+            );
 
             if (tile.Durability < Tile.MaxDurability) {
                 var rectTop = tile.Bounds.Bottom - (float) (tile.Durability + 1) / Tile.MaxDurability * TileSize;
