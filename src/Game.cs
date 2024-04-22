@@ -264,7 +264,7 @@ public class Game : Microsoft.Xna.Framework.Game {
 
         
         var hotbar2 = new Hotbar(hotbarTexture, new(WindowWidth / 2 - hotbarTexture.Width / 2, WindowHeight - hotbarTexture.Height));
-        var healthBar2 = new HealthBar(fullTexture, emptyTexture, bonusTexture, new(WindowWidth - 10 - fullTexture.Width, 10));
+        var healthBar2 = new HealthBar(fullTexture, emptyTexture, bonusTexture, new(WindowWidth - 10 - fullTexture.Width, WindowHeight - fullTexture.Height - 10));
         Components.Add(new InputListenerComponent(this, hotbar2.CreateInputListeners()));
         Player2 = new Player(playerTexture, hotbar2, healthBar2, new(0, 0, playerTexture.Width, playerTexture.Height), Team.Red);
         AddEntity(Player2);
