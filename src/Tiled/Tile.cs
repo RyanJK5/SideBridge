@@ -1,5 +1,5 @@
 using MonoGame.Extended;
-using MonoGame.Extended .Collisions;
+using MonoGame.Extended.Collisions;
 
 namespace SideBridge;
 
