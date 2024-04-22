@@ -140,6 +140,42 @@
 /processorParam:Quality=Best
 /build:sfx/arrowhit.ogg
 
+#begin sfx/block_walk1.ogg
+/importer:OggImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:sfx/block_walk1.ogg
+
+#begin sfx/block_walk2.ogg
+/importer:OggImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:sfx/block_walk2.ogg
+
+#begin sfx/block_walk3.ogg
+/importer:OggImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:sfx/block_walk3.ogg
+
+#begin sfx/block_walk4.ogg
+/importer:OggImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:sfx/block_walk4.ogg
+
+#begin sfx/block_walk5.ogg
+/importer:OggImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:sfx/block_walk5.ogg
+
+#begin sfx/block_walk6.ogg
+/importer:OggImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:sfx/block_walk6.ogg
+
 #begin sfx/block1.ogg
 /importer:OggImporter
 /processor:SoundEffectProcessor

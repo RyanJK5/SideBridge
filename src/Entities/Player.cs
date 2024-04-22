@@ -10,8 +10,6 @@ namespace SideBridge;
 
 public class Player : Entity {
 
-    private const float MaxRedHealth = 20;
-
     private const float MaximumVerticalVelocity = 15f;
     private const float MaximumWalkingVelocity = 5f;
     private const float MaximumHorizontalVelocity = 20f;
@@ -22,6 +20,7 @@ public class Player : Entity {
     private const float Friction = 1f;
     private const float AirResistance = 0.2f;
 
+    private const float MaxRedHealth = 20;
     private const float SwordDamge = 6f;
     private const float SwordCriticalDamage = 7.5f;
     private const float TileReach = 3.5f;

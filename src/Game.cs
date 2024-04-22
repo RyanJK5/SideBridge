@@ -11,7 +11,6 @@ using MonoGame.Extended.TextureAtlases;
 using MonoGame.Extended.Input.InputListeners;
 using MonoGame.Extended.ViewportAdapters;
 using System.Collections.Generic;
-using MonoGame.Extended.Tiled;
 
 namespace SideBridge;
 
