@@ -28,24 +28,37 @@ public class Player : Entity {
     private const int HeightLimit = 8;
     private const int IslandWidths = 10;
 
-    private const float MaxBowCharge = 45f;
-    private const float PotionDrinkTime = 1.61f;
-    private const float VoidTime = 1f;
     public const float ArrowCooldown = 3f;
+    private const float MaxBowCharge = 45f;
+
+    private const float AppleEatTime = 1.5f;
+    private const float AppleCooldown = 0.2f;
+    
+    private const float VoidTime = 1f;
+    private const float VoidCooldown = 0.2f;
 
     private const float SprintingSoundDelay = 0.3f;
     private const float WalkingSoundDelay = 0.45f;
 
-    public float TimeSinceBowShot = ArrowCooldown;
     private bool _mouseDown;
     private bool _knockedBack;
+
     private float _bowCharge = 1;
-    private float _potionCharge;
+    public float TimeSinceBow = ArrowCooldown;
+    
+    private float _appleCharge;
+    private float _timeSinceApple;
+    
     private float _voidCharge;
-    private float _walkTime;
+    private float _timeSinceVoid;
 
     public float Health { get; private set; }
     private readonly Keys[] _keyInputs;
+
+    private float _walkTime;
+    private (Vector2 pos, SoundEffectInstance soundEffect) _lastTileSound;
+    private SoundEffectInstance _eatSound;
+    private SoundEffectInstance _voidSound;
 
     public bool OnGround {
         get => Bounds.Bottom < Game.MapHeight && Bounds.Bottom > 0 &&
@@ -100,6 +113,11 @@ public class Player : Entity {
         Health = MaxRedHealth;
         Team = team;
         Bounds.Position = SpawnPosition;
+
+        _eatSound = Game.GetSoundEffect(SoundEffectID.Eat).CreateInstance();
+        _eatSound.Volume = 0.8f;
+        _voidSound = Game.GetSoundEffect(SoundEffectID.Void).CreateInstance();
+        _voidSound.Volume = 0.5f;
     }
 
     public override void OnCollision(Entity other) {
@@ -157,13 +175,13 @@ public class Player : Entity {
             spriteBatch.DrawLine(center.X, center.Y, center.X + vecLine.X, center.Y + vecLine.Y, Color.GhostWhite * 0.5f, 20f);
         }
 
-        if (_potionCharge > 0) {
+        if (_appleCharge > 0) {
             var barBounds = new RectangleF(Bounds.X - 2, Bounds.Y - 10, Bounds.Width + 4, 6);
             spriteBatch.FillRectangle(barBounds, Color.DarkRed);
-            spriteBatch.DrawPercentageBar(barBounds, _potionCharge / PotionDrinkTime);
+            spriteBatch.DrawPercentageBar(barBounds, _appleCharge / AppleEatTime);
         }
         if (_voidCharge > 0) {
-            var barBounds = new RectangleF(Bounds.X - 2, Bounds.Y - (_potionCharge > 0 ? 20 : 10), Bounds.Width + 4, 6);
+            var barBounds = new RectangleF(Bounds.X - 2, Bounds.Y - (_appleCharge > 0 ? 20 : 10), Bounds.Width + 4, 6);
             spriteBatch.FillRectangle(barBounds, Color.Purple);
             spriteBatch.DrawPercentageBar(barBounds, _voidCharge / VoidTime, false);
         }
@@ -228,6 +246,8 @@ public class Player : Entity {
         UpdatePosition();
         ResetPositions();
 
+        _timeSinceApple += gameTime.GetElapsedSeconds();
+        _timeSinceVoid += gameTime.GetElapsedSeconds();
         if (OnGround && Velocity.X != 0) {
             _walkTime += gameTime.GetElapsedSeconds();
             if (_walkTime >= (Sprinting ? SprintingSoundDelay : WalkingSoundDelay)) { 
@@ -240,15 +260,15 @@ public class Player : Entity {
         else{
             _walkTime = SprintingSoundDelay;
         }
-        if (TimeSinceBowShot < ArrowCooldown) {
-            TimeSinceBowShot += gameTime.GetElapsedSeconds();
+        if (TimeSinceBow < ArrowCooldown) {
+            TimeSinceBow += gameTime.GetElapsedSeconds();
         }
         if (_hotbar.ActiveSlot != 1 && _bowCharge > 1) {
             _bowCharge = 1;
             _mouseDown = false;
         }
-        if (_hotbar.ActiveSlot != 3 && _potionCharge > 0) {
-            _potionCharge = 0;
+        if (_hotbar.ActiveSlot != 3 && _appleCharge > 0) {
+            _appleCharge = 0;
         }
 
         switch (_hotbar.ActiveSlot) {
@@ -259,14 +279,14 @@ public class Player : Entity {
                 TryModifyBlock(gameTime);
                 break;
             case 3:
-                TryDrinkPotion(gameTime);
+                TryEatApple(gameTime);
                 break;
         }
         TryVoid(gameTime);
     }
 
     private void UpdatePosition() {
-        if (!_knockedBack && (_bowCharge > 1 || _potionCharge > 0 || _voidCharge > 0)) {
+        if (!_knockedBack && (_bowCharge > 1 || _appleCharge > 0 || _voidCharge > 0)) {
             Bounds.X += Velocity.X / 4;
         }
         else if (!_knockedBack && Sprinting) {
@@ -309,7 +329,7 @@ public class Player : Entity {
     }
 
     private void TryShootBow(GameTime gameTime) {
-        if (TimeSinceBowShot < ArrowCooldown) {
+        if (TimeSinceBow < ArrowCooldown) {
             return;
         }
         var mouseState = Mouse.GetState();
@@ -343,7 +363,7 @@ public class Player : Entity {
 
             _mouseDown = false;
             _bowCharge = 1;
-            TimeSinceBowShot = 0;
+            TimeSinceBow = 0;
         }
     }
 
@@ -365,29 +385,39 @@ public class Player : Entity {
         }
     }
     
-    private void TryDrinkPotion(GameTime gameTime) {
+    private void TryEatApple(GameTime gameTime) {
         var mouseState = Mouse.GetState();
-        if (mouseState.LeftButton == ButtonState.Pressed) {
-            _potionCharge += gameTime.GetElapsedSeconds();
-            if (_potionCharge >= PotionDrinkTime) {
-                _potionCharge = 0;
+        if (_timeSinceApple > AppleCooldown && mouseState.LeftButton == ButtonState.Pressed) {
+            if (_appleCharge == 0) {
+                _eatSound.Play();
+            }
+            _appleCharge += gameTime.GetElapsedSeconds();
+            if (_appleCharge >= AppleEatTime) {
+                _appleCharge = 0;
+                _timeSinceApple = 0;
                 Health = 24;
             }
         }
         else {
-            _potionCharge = 0;
+            _eatSound?.Stop();
+            _appleCharge = 0;
         }
     }
 
     private void TryVoid(GameTime gameTime) {
-        if (Keyboard.GetState().IsKeyDown(_keyInputs[(int) PlayerAction.Void])) {
+        if (_timeSinceVoid >= VoidCooldown && Keyboard.GetState().IsKeyDown(_keyInputs[(int) PlayerAction.Void])) {
+            if (_voidCharge == 0) {
+                _voidSound.Play();
+            }
             _voidCharge += gameTime.GetElapsedSeconds();
             if (_voidCharge >= VoidTime) {
                 _voidCharge = 0;
+                _timeSinceVoid = 0;
                 OnDeath();
             }
         }
         else {
+            _voidSound.Stop();
             _voidCharge = 0;
         }
     }
@@ -416,7 +446,6 @@ public class Player : Entity {
         }
     }
 
-    private (Vector2 pos, SoundEffectInstance soundEffect) _lastTileSound;
     private void DamageTile(Tile tile) {
         if (!TileTypes.Breakable(tile.Type)) {
             return;

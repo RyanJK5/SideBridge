@@ -230,6 +230,12 @@
 /processorParam:Quality=Best
 /build:sfx/breakblock.mp3
 
+#begin sfx/eat.ogg
+/importer:OggImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:sfx/eat.ogg
+
 #begin sfx/kill.ogg
 /importer:OggImporter
 /processor:SoundEffectProcessor
@@ -290,3 +296,8 @@
 /processorParam:Quality=Best
 /build:sfx/win.ogg
 
+#begin sfx/void.ogg
+/importer:OggImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:sfx/void.ogg
