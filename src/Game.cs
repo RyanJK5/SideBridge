@@ -11,6 +11,7 @@ using MonoGame.Extended.TextureAtlases;
 using MonoGame.Extended.Input.InputListeners;
 using MonoGame.Extended.ViewportAdapters;
 using System.Collections.Generic;
+using MonoGame.Extended.Entities;
 
 namespace SideBridge;
 
@@ -216,7 +217,7 @@ public class Game : Microsoft.Xna.Framework.Game {
         _camera = new(viewportAdapter)
         {
             MinimumZoom = 0.75f,
-            MaximumZoom = 1.178f
+            MaximumZoom = 2f
         };
 
         Content.RootDirectory = "Content";
@@ -328,29 +329,64 @@ public class Game : Microsoft.Xna.Framework.Game {
         }
     }
 
-    // TODO fix camera going wacky when someone dies
     private void UpdateCamera() {
         var sideBounds = 100f / _camera.Zoom;
-        var camTop = _camera.Center.Y - WindowHeight / _camera.Zoom / 2f;
-        var camBottom = _camera.Center.Y + WindowHeight / _camera.Zoom / 2f;
-
         var p1 = Player1.Bounds;
         var p2 = Player2.Bounds;
 
-        var oldCameraY = _camera.Center.Y;
-        var cameraY = oldCameraY;
-        if ((p1.Y == p2.Y && oldCameraY != p1.Y) 
-            || MathF.Max(p1.Y, p2.Y) > camBottom
-            || MathF.Min(p1.Y, p2.Y) < camTop) {
-            cameraY = oldCameraY + (oldCameraY < p1.Y ? 1 : -1);
+        var oldZoom = _camera.Zoom;
+        var zoomX = WindowWidth / (MathF.Abs(p1.X - p2.Right) + sideBounds * 2f);
+        var targetZoom = zoomX;
+        targetZoom = MathF.Max(MathF.Min(targetZoom, _camera.MaximumZoom), _camera.MinimumZoom);
+        _camera.Zoom = targetZoom;
+        
+        var cameraY = _camera.Center.Y;
+        var cameraDefaultY = 520f;
+        _camera.LookAt(new((p1.X + p2.Right) / 2, cameraDefaultY));
+        
+        var cameraTargetY = cameraDefaultY;
+        if (MathF.Max(WorldToScreen(p1.BottomLeft).Y, WorldToScreen(p2.BottomLeft).Y) > WindowHeight) {
+            cameraTargetY = 720;
         }
-        _camera.LookAt(new((p1.X + p2.Right) / 2, oldCameraY));
+        _camera.LookAt(new(_camera.Center.X, cameraTargetY));
 
-        var zoom = WindowWidth / (MathF.Abs(p1.X - p2.Right) + sideBounds * 2f);
-        if (zoom < _camera.MinimumZoom || zoom > _camera.MaximumZoom) {
-            return;
+        if (MathF.Min(WorldToScreen(p1.BottomLeft).Y, WorldToScreen(p2.BottomLeft).Y) < 0) {
+            cameraTargetY = (p1.Center.Y + p2.Center.Y) / 2;
         }
-        _camera.Zoom = zoom;
+        _camera.LookAt(new(_camera.Center.X, cameraTargetY));
+
+        if (MathF.Max(WorldToScreen(p1.BottomLeft).Y, WorldToScreen(p2.BottomLeft).Y) > WindowHeight || 
+            MathF.Min(WorldToScreen(p1.TopLeft).Y, WorldToScreen(p2.TopLeft).Y) < 0) {
+            targetZoom = WindowHeight / (MathF.Max(p1.Bottom, p2.Bottom) - MathF.Min(p1.Top, p2.Top) + 80);
+            targetZoom = MathF.Max(MathF.Min(targetZoom, _camera.MaximumZoom), _camera.MinimumZoom);
+        }
+
+        var newY = cameraY;
+        var cameraSpeed = 5;
+        if (newY < cameraTargetY) {
+            newY += cameraSpeed;
+        }
+        else if (newY > cameraTargetY) {
+            newY -= cameraSpeed;
+        }
+        if (MathF.Abs(newY - cameraTargetY) < cameraSpeed) {
+            newY = cameraTargetY;
+        }
+
+        var newZoom = _camera.Zoom;
+        var zoomSpeed = 0.01f;
+        if (oldZoom < targetZoom) {
+            newZoom = oldZoom + zoomSpeed;
+        }
+        else if (oldZoom > targetZoom) {
+            newZoom = oldZoom - zoomSpeed;
+        }
+        if (MathF.Abs(oldZoom - targetZoom) < zoomSpeed || zoomX == targetZoom) {
+            newZoom = targetZoom;
+        }
+
+        _camera.LookAt(new((p1.X + p2.Right) / 2, newY));
+        _camera.Zoom = newZoom;
     }
 
     protected override void Draw(GameTime gameTime) {
