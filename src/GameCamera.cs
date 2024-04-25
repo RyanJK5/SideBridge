@@ -13,7 +13,7 @@ public class GameCamera {
     private const float DefaultY = 520f;
     private const float LowerDefaultY = 720f;
 
-    private const float CameraSpeed = 5f;
+    private const float CameraSpeed = 10f;
     private const float ZoomSpeed = 0.02f;
 
     private readonly OrthographicCamera _camera;

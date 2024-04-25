@@ -224,17 +224,17 @@
 /processorParam:Quality=Best
 /build:sfx/bow6.ogg
 
-#begin sfx/breakblock.mp3
-/importer:Mp3Importer
-/processor:SoundEffectProcessor
-/processorParam:Quality=Best
-/build:sfx/breakblock.mp3
-
 #begin sfx/eat.ogg
 /importer:OggImporter
 /processor:SoundEffectProcessor
 /processorParam:Quality=Best
 /build:sfx/eat.ogg
+
+#begin sfx/goal.ogg
+/importer:OggImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:sfx/goal.ogg
 
 #begin sfx/kill.ogg
 /importer:OggImporter
@@ -253,6 +253,12 @@
 /processor:SoundEffectProcessor
 /processorParam:Quality=Best
 /build:sfx/tick.ogg
+
+#begin sfx/void.ogg
+/importer:OggImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:sfx/void.ogg
 
 #begin sfx/walk1.ogg
 /importer:OggImporter
@@ -296,14 +302,3 @@
 /processorParam:Quality=Best
 /build:sfx/win.ogg
 
-#begin sfx/void.ogg
-/importer:OggImporter
-/processor:SoundEffectProcessor
-/processorParam:Quality=Best
-/build:sfx/void.ogg
-
-#begin sfx/goal.ogg
-/importer:OggImporter
-/processor:SoundEffectProcessor
-/processorParam:Quality=Best
-/build:sfx/goal.ogg

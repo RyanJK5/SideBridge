@@ -23,7 +23,6 @@ public enum SoundEffectID {
     Bow4,
     Bow5,
     Bow6,
-    BreakBlock,
     SwordHit,
     ArrowHit,
     Kill,
