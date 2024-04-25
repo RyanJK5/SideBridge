@@ -279,10 +279,10 @@ public class Player : Entity {
 
         switch (_hotbar.ActiveSlot) {
             case 1:
-                TryShootBow(gameTime);
+                TryShootBow();
                 break;
             case 2:
-                TryModifyBlock(gameTime);
+                TryModifyBlock();
                 break;
             case 3:
                 TryEatApple(gameTime);
@@ -334,7 +334,7 @@ public class Player : Entity {
         }
     }
 
-    private void TryShootBow(GameTime gameTime) {
+    private void TryShootBow() {
         if (TimeSinceBow < BowCooldown) {
             return;
         }
@@ -373,7 +373,7 @@ public class Player : Entity {
         }
     }
 
-    private void TryModifyBlock(GameTime gameTime) {
+    private void TryModifyBlock() {
         Vector2 mousePos = Game.ScreenToWorld(Mouse.GetState().Position.ToVector2());
         var tileX = (int) (mousePos.X / TileSize) * TileSize;
         var tileY = (int) (mousePos.Y / TileSize) * TileSize;
@@ -513,14 +513,10 @@ public class Player : Entity {
     }
 
     private void ResetPositions() {
-        if (Bounds.X < 0) {
-            Bounds.X = 0;
-        }
-        else if (Bounds.X > Game.MapWidth - Bounds.Width) {
-            Bounds.X = Game.MapWidth - Bounds.Width;
-        }
+        Bounds.X = Game.Constrict(Bounds.X, 0, Game.MapWidth - Bounds.Width);
         if (Bounds.Y > Game.MapHeight) {
             Bounds.Y = -Bounds.Height * 4;
+            Game.GetSoundEffect(SoundEffectID.Goal).Play();
         }
     }
 

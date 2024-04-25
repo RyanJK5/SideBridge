@@ -6,7 +6,7 @@ namespace SideBridge;
 
 public class GameCamera {
     
-    private const float YZoom = 1.55f;
+    private const float MinYZoom = 1.55f;
     private const float SideBoundWidth = 100f;
 
     private const float HighestPlayerY = 280f;
@@ -16,7 +16,7 @@ public class GameCamera {
     private const float CameraSpeed = 5f;
     private const float ZoomSpeed = 0.02f;
 
-    private OrthographicCamera _camera;
+    private readonly OrthographicCamera _camera;
 
     public float Zoom { get => _camera.Zoom; set => _camera.Zoom = value;}
 
@@ -26,9 +26,7 @@ public class GameCamera {
 
     public Vector2 Center { get => _camera.Center; } 
 
-    public GameCamera(OrthographicCamera camera) {
-        _camera = camera;
-    }
+    public GameCamera(OrthographicCamera camera) => _camera = camera;
 
     public void Update() {
         float oldZoom = Zoom;
@@ -54,6 +52,7 @@ public class GameCamera {
         
         // if default position is too high, try looking at lower default position
         float targetY = DefaultY;
+        float targetZoom = zoomX;
         if (WorldToScreen(lowerBottom).Y > Game.WindowHeight) {
             targetY = LowerDefaultY;
         }
@@ -61,23 +60,21 @@ public class GameCamera {
 
         // if neither captures both players, try looking directly between both players
         if (WorldToScreen(upperTop).Y < 0) {
+            Console.WriteLine(upperTop.Y);
             if (upperTop.Y < HighestPlayerY) {
                 targetY = oldY;
+                targetZoom = oldZoom;
             }
             else {
                 targetY = (p1.Center.Y + p2.Center.Y) / 2;
+                targetZoom = MinYZoom;
             }
-        }
-        LookAt(new(Center.X, targetY));
-
-        // if still can't see both players, zoom out to fit both
-        float targetZoom = zoomX;
-        if (WorldToScreen(lowerBottom).Y > Game.WindowHeight || WorldToScreen(upperTop).Y < 0) {
-            targetZoom = YZoom;
         }
 
         LookAt(new((p1.X + p2.Right) / 2, Game.MoveAtSpeed(oldY, CameraSpeed, targetY)));
-        Zoom = Game.MoveAtSpeed(oldZoom, ZoomSpeed, targetZoom);
+        if (targetZoom != zoomX || oldZoom < zoomX) {
+            Zoom = Game.MoveAtSpeed(oldZoom, ZoomSpeed, targetZoom);
+        }
     }
 
     public Vector2 ScreenToWorld(float x, float y) => _camera.ScreenToWorld(x, y);
