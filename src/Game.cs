@@ -12,6 +12,7 @@ using MonoGame.Extended.Input.InputListeners;
 using MonoGame.Extended.ViewportAdapters;
 using System.Collections.Generic;
 using MonoGame.Extended.Entities;
+using System.Threading.Tasks;
 
 namespace SideBridge;
 
@@ -20,6 +21,8 @@ public class Game : Microsoft.Xna.Framework.Game {
     private static Game s_main;
 
     private static void Main() {
+        Console.Write("Hosting? ");
+        Task task = Task.Run(() => GameNetwork.Start(bool.Parse(Console.ReadLine())));
         s_main = new();
         using var game = s_main;
         s_main.Run();
