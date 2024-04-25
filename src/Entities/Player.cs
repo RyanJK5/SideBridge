@@ -56,7 +56,6 @@ public class Player : Entity {
     private readonly Keys[] _keyInputs;
 
     private float _walkTime;
-    private (Vector2 pos, SoundEffectInstance soundEffect) _lastTileSound;
     private SoundEffectInstance _eatSound;
     private SoundEffectInstance _voidSound;
 
@@ -259,7 +258,7 @@ public class Player : Entity {
             if (_walkTime >= (Sprinting ? SprintingSoundDelay : WalkingSoundDelay)) { 
                 _walkTime = 0;
                 SoundEffectInstance walkSound = Game.GetSoundEffect(SoundEffects.GetRandomWalkSound()).CreateInstance();
-                walkSound.Volume = 0.2f;
+                walkSound.Volume = 0.15f;
                 walkSound.Play();
             }
         }
@@ -384,10 +383,7 @@ public class Player : Entity {
             return;
         }
         if (Mouse.GetState().RightButton == ButtonState.Pressed && inRange) {
-            DamageTile(Game.GetTile(mousePos.X, mousePos.Y));
-        }
-        else if (TileTypes.Solid(Game.GetTile(_lastTileSound.pos.X, _lastTileSound.pos.Y).Type)) {
-            _lastTileSound.soundEffect?.Stop();
+            Game.DamageTile(Game.GetTile(mousePos.X, mousePos.Y));
         }
     }
     
@@ -449,22 +445,6 @@ public class Player : Entity {
                 Game.SetTile(tileY / TileSize <= HeightLimit ? darkBlockType : normalBlockType, mousePos.X, mousePos.Y);
                 break;
             }
-        }
-    }
-
-    private void DamageTile(Tile tile) {
-        if (!TileTypes.Breakable(tile.Type)) {
-            return;
-        }
-        if (tile.Durability == Tile.MaxDurability) {
-            _lastTileSound.soundEffect?.Stop();
-            _lastTileSound.soundEffect = Game.GetSoundEffect(SoundEffectID.BreakBlock).CreateInstance();
-            _lastTileSound.pos = tile.Bounds.Position;
-            _lastTileSound.soundEffect?.Play();
-        }
-        tile.Durability--;
-        if (tile.Durability <= 0) {
-            Game.SetTile(TileType.Air, tile.Bounds.X, tile.Bounds.Y);
         }
     }
 

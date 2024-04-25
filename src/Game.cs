@@ -78,6 +78,23 @@ public class Game : Microsoft.Xna.Framework.Game {
         tiledWorld.SetTile(type, intX, intY);
     }
 
+    public static void DamageTile(Tile tile) {
+        if (!TileTypes.Breakable(tile.Type)) {
+            return;
+        }
+        if (tile.Durability == Tile.MaxDurability) {
+            SoundEffectInstance sfx = GetSoundEffect(SoundEffects.GetRandomWalkSound()).CreateInstance();
+            sfx.Pitch = -0.5f;
+            sfx.Volume = 0.5f;
+            sfx.Play(); 
+        }
+        tile.Durability--;
+        if (tile.Durability <= 0) {
+            SetTile(TileType.Air, tile.Bounds.X, tile.Bounds.Y);
+            GetSoundEffect(SoundEffects.GetRandomBlockSound()).Play();
+        }
+    }
+
     public static void AddEntity(Entity entity) => s_main._entityWorld.Add(entity);
     public static void RemoveEntity(Entity entity) => s_main._entityWorld.Remove(entity);
     public static bool ContainsEntity(Entity entity) => s_main._entityWorld.Contains(entity);
