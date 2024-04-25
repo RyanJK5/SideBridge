@@ -91,6 +91,21 @@ public class Game : Microsoft.Xna.Framework.Game {
     public static Vector2 ScreenToWorld(Vector2 position) => s_main._camera.ScreenToWorld(position.X, position.Y);
     public static Vector2 WorldToScreen(Vector2 position) => s_main._camera.WorldToScreen(position.X, position.Y);
 
+    public static float Constrict(float val, float min, float max) => MathF.Max(MathF.Min(val, max), min);
+
+    public static float MoveAtSpeed(float val, float speed, float target) {
+        if (val < target) {
+            val += speed;
+        }
+        else if (val > target) {
+            val -= speed;
+        }
+        if (MathF.Abs(val - target) < speed) {
+            val = target;
+        }
+        return val;
+    }
+
     public static void AddListeners(params InputListener[] listeners) {
         s_main.Components.Add(new InputListenerComponent(s_main, listeners));
     }
@@ -330,63 +345,60 @@ public class Game : Microsoft.Xna.Framework.Game {
     }
 
     private void UpdateCamera() {
-        var sideBounds = 100f / _camera.Zoom;
-        var p1 = Player1.Bounds;
-        var p2 = Player2.Bounds;
 
-        var oldZoom = _camera.Zoom;
-        var zoomX = WindowWidth / (MathF.Abs(p1.X - p2.Right) + sideBounds * 2f);
-        var targetZoom = zoomX;
-        targetZoom = MathF.Max(MathF.Min(targetZoom, _camera.MaximumZoom), _camera.MinimumZoom);
-        _camera.Zoom = targetZoom;
+        float oldZoom = _camera.Zoom;
+        float oldY = _camera.Center.Y;
+
+        RectangleF p1 = Player1.Bounds;
+        RectangleF p2 = Player2.Bounds;
         
-        var cameraY = _camera.Center.Y;
-        var cameraDefaultY = 520f;
-        _camera.LookAt(new((p1.X + p2.Right) / 2, cameraDefaultY));
+        Player lowerPlayer = p1.Bottom > p2.Bottom ? Player1 : Player2;
+        Player upperPlayer = p1.Top < p2.Top ? Player1 : Player2;
         
-        var cameraTargetY = cameraDefaultY;
-        if (MathF.Max(WorldToScreen(p1.BottomLeft).Y, WorldToScreen(p2.BottomLeft).Y) > WindowHeight) {
-            cameraTargetY = 720;
-        }
-        _camera.LookAt(new(_camera.Center.X, cameraTargetY));
+        Vector2 lowerBottom = lowerPlayer.Bounds.BottomLeft;
+        Vector2 upperTop = upperPlayer.Bounds.TopLeft;
 
-        if (MathF.Min(WorldToScreen(p1.BottomLeft).Y, WorldToScreen(p2.BottomLeft).Y) < 0) {
-            cameraTargetY = (p1.Center.Y + p2.Center.Y) / 2;
-        }
-        _camera.LookAt(new(_camera.Center.X, cameraTargetY));
 
-        if (MathF.Max(WorldToScreen(p1.BottomLeft).Y, WorldToScreen(p2.BottomLeft).Y) > WindowHeight || 
-            MathF.Min(WorldToScreen(p1.TopLeft).Y, WorldToScreen(p2.TopLeft).Y) < 0) {
-            targetZoom = WindowHeight / (MathF.Max(p1.Bottom, p2.Bottom) - MathF.Min(p1.Top, p2.Top) + 80);
-            targetZoom = MathF.Max(MathF.Min(targetZoom, _camera.MaximumZoom), _camera.MinimumZoom);
+        // set initial zoom to fit player 1 and 2 horizontally
+        float sideBounds = 100f / _camera.Zoom;
+        float zoomX = WindowWidth / (MathF.Abs(p1.X - p2.Right) + sideBounds * 2f);
+        zoomX = Constrict(zoomX, _camera.MinimumZoom, _camera.MaximumZoom);
+        _camera.Zoom = zoomX;
+        
+        // try looking at the default position
+        var defaultY = 520f;
+        _camera.LookAt(new((p1.X + p2.Right) / 2, defaultY));
+        
+        // if default position is too high, try looking at lower default position
+        float targetY = defaultY;
+        if (WorldToScreen(lowerBottom).Y > WindowHeight) {
+            targetY = 720f;
         }
+        _camera.LookAt(new(_camera.Center.X, targetY));
 
-        var newY = cameraY;
-        var cameraSpeed = 5;
-        if (newY < cameraTargetY) {
-            newY += cameraSpeed;
+        // if neither captures both players, try looking directly between both players
+        float highestPlayerY = 280f;
+        if (WorldToScreen(upperTop).Y < 0) {
+            if (upperTop.Y < highestPlayerY) {
+                targetY = oldY;
+            }
+            else {
+                targetY = (p1.Center.Y + p2.Center.Y) / 2;
+            }
         }
-        else if (newY > cameraTargetY) {
-            newY -= cameraSpeed;
-        }
-        if (MathF.Abs(newY - cameraTargetY) < cameraSpeed) {
-            newY = cameraTargetY;
-        }
+        _camera.LookAt(new(_camera.Center.X, targetY));
 
-        var newZoom = _camera.Zoom;
-        var zoomSpeed = 0.01f;
-        if (oldZoom < targetZoom) {
-            newZoom = oldZoom + zoomSpeed;
-        }
-        else if (oldZoom > targetZoom) {
-            newZoom = oldZoom - zoomSpeed;
-        }
-        if (MathF.Abs(oldZoom - targetZoom) < zoomSpeed || zoomX == targetZoom) {
-            newZoom = targetZoom;
+        // if still can't see both players, zoom out to fit both
+        float targetZoom = zoomX;
+        if (WorldToScreen(lowerBottom).Y > WindowHeight || WorldToScreen(upperTop).Y < 0) {
+            targetZoom = 1.55f;
         }
 
-        _camera.LookAt(new((p1.X + p2.Right) / 2, newY));
-        _camera.Zoom = newZoom;
+        var cameraSpeed = 5f;
+        var zoomSpeed = 0.02f;
+
+        _camera.LookAt(new((p1.X + p2.Right) / 2, MoveAtSpeed(oldY, cameraSpeed, targetY)));
+        _camera.Zoom = MoveAtSpeed(oldZoom, zoomSpeed, targetZoom);
     }
 
     protected override void Draw(GameTime gameTime) {

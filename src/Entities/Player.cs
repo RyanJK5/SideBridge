@@ -25,7 +25,7 @@ public class Player : Entity {
     private const float SwordCriticalDamage = 7.5f;
     private const float TileReach = 3.5f;
     private const int TileSize = 40;
-    private const int HeightLimit = 8;
+    public const int HeightLimit = 8;
     private const int IslandWidths = 10;
 
     public const float BowCooldown = 3f;
