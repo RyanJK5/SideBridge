@@ -28,7 +28,7 @@ public class Hotbar : UI {
 
         var offset = (DrawPos.Y + Texture.Height / 2 >= Game.WindowHeight) ? -5 : Texture.Height / 2;
         spriteBatch.DrawPercentageBar(new RectangleF(DrawPos.X, DrawPos.Y + offset, Texture.Width, 5), 
-            Game.Player1.TimeSinceBow / Player.BowCooldown);
+            (_team == Team.Red ? Game.Player2.TimeSinceBow : Game.Player1.TimeSinceBow) / Player.BowCooldown);
         spriteBatch.FillRectangle(new RectangleF(DrawPos.X + ActiveSlot * SlotSize, DrawPos.Y, SlotSize, SlotSize), Color.White * 0.5f);
     }
 
