@@ -1,5 +1,4 @@
 using System;
-using Autofac;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 
