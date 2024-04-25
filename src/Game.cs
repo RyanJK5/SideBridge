@@ -26,7 +26,7 @@ public class Game : Microsoft.Xna.Framework.Game {
     }
 
     private readonly GraphicsDeviceManager _graphics;
-    private readonly OrthographicCamera _camera;
+    private readonly GameCamera _camera;
     private SpriteBatch _spriteBatch;
     private TiledWorld _tiledWorld;
     private EntityWorld _entityWorld;
@@ -229,11 +229,12 @@ public class Game : Microsoft.Xna.Framework.Game {
         _graphics.ToggleFullScreen();
 
         var viewportAdapter = new BoxingViewportAdapter(Window, GraphicsDevice, 1920, 1080);
-        _camera = new(viewportAdapter)
+        var camera = new OrthographicCamera(viewportAdapter)
         {
             MinimumZoom = 0.75f,
             MaximumZoom = 2f
         };
+        _camera = new GameCamera(camera);
 
         Content.RootDirectory = "Content";
         IsMouseVisible = true;
