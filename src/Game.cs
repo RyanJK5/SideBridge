@@ -32,12 +32,11 @@ internal class Game {
     public static void Start() {
         s_current = new Game();
         s_current.InitializeFields();
-        GameGraphics.Run();
         ScoringHandler.NewRound();
+        GameGraphics.Run();
     }
 
     private Game() { }
-
     private void InitializeFields() {
         _gameGraphics = new GameGraphics();
         ContentManager loader = _gameGraphics.Content;
