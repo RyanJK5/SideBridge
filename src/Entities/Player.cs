@@ -506,7 +506,7 @@ public class Player : Entity {
     }
 
     private void ResetPositions() {
-        Bounds.X = Game.Constrict(Bounds.X, 0, Game.TiledWorld.WidthInPixels - Bounds.Width);
+        Bounds.X = Util.Constrict(Bounds.X, 0, Game.TiledWorld.WidthInPixels - Bounds.Width);
         if (Bounds.Y > Game.TiledWorld.HeightInPixels) {
             Bounds.Y = -Bounds.Height * 4;
             Game.SoundEffectHandler.PlaySound(SoundEffectID.Goal);

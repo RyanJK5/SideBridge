@@ -5,7 +5,22 @@ using MonoGame.Extended;
 
 namespace SideBridge;
 
-public static class Extensions {
+public static class Util {
+
+    public static float Constrict(float val, float min, float max) => MathF.Max(MathF.Min(val, max), min);
+
+    public static float MoveAtSpeed(float val, float speed, float target) {
+        if (val < target) {
+            val += speed;
+        }
+        else if (val > target) {
+            val -= speed;
+        }
+        if (MathF.Abs(val - target) < speed) {
+            val = target;
+        }
+        return val;
+    }
 
     public static Vector2 RotatedCopy(this Vector2 point, float angle, Vector2 origin) {
         var x = point.X;
@@ -37,16 +52,16 @@ public static class Extensions {
         return false;
     }
 
-    private struct LineF {
-        public Vector2 A;
-        public Vector2 B;
+    private readonly struct LineF {
+        public readonly Vector2 A;
+        public readonly Vector2 B;
 
         public LineF(Vector2 a, Vector2 b) {
             A = a;
             B = b;
         }
 
-        public bool Intersects(LineF o, out Vector2 intersectionPoint) {
+        public readonly bool Intersects(LineF o, out Vector2 intersectionPoint) {
             float s1X = B.X - A.X;     
             float s1Y = B.Y - A.Y;
             float s2X = o.B.X - o.A.X;
@@ -67,10 +82,26 @@ public static class Extensions {
     public static void DrawPercentageBar(this SpriteBatch spriteBatch, RectangleF bounds, float percentCharged, bool warmColors = true) {
         Color chargeColor;
         if (warmColors) {
-            chargeColor = new Color(percentCharged * 2 < 1f ? 1f : 1f - percentCharged + 0.5f, percentCharged * 2 < 1f ? percentCharged * 2 : 1f, 0f);
+            chargeColor = new Color(
+                percentCharged * 2 < 1f 
+                    ? 1f 
+                    : 1f - percentCharged + 0.5f, 
+                percentCharged * 2 < 1f 
+                    ? percentCharged * 2 
+                    : 1f, 
+                0f
+            );
         }
         else {
-            chargeColor = new Color(percentCharged * 2 < 1f ? 1f : 1f - percentCharged + 0.5f, 0f, percentCharged * 2 < 1f ? percentCharged * 2 : 1f);
+            chargeColor = new Color(
+                percentCharged * 2 < 1f 
+                    ? 1f 
+                    : 1f - percentCharged + 0.5f, 
+                0f, 
+                percentCharged * 2 < 1f 
+                    ? percentCharged * 2 
+                    : 1f
+            );
         }
         spriteBatch.FillRectangle(bounds.X, bounds.Y, percentCharged * bounds.Width, bounds.Height, chargeColor);
     }

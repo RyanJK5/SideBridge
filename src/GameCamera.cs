@@ -49,7 +49,7 @@ public class GameCamera : IUpdatable {
         // set initial zoom to fit player 1 and 2 horizontally
         float sideBounds = SideBoundWidth / Zoom;
         float zoomX = Game.GameGraphics.WindowWidth / (MathF.Abs(p1.X - p2.Right) + sideBounds * 2f);
-        zoomX = Game.Constrict(zoomX, MinimumZoom, MaximumZoom);
+        zoomX = Util.Constrict(zoomX, MinimumZoom, MaximumZoom);
         Zoom = zoomX;
         
         // try looking at the default position
@@ -75,9 +75,9 @@ public class GameCamera : IUpdatable {
             }
         }
 
-        LookAt(new((p1.X + p2.Right) / 2, Game.MoveAtSpeed(oldY, CameraSpeed, targetY)));
+        LookAt(new((p1.X + p2.Right) / 2, Util.MoveAtSpeed(oldY, CameraSpeed, targetY)));
         if (targetZoom != zoomX || oldZoom < zoomX) {
-            Zoom = Game.MoveAtSpeed(oldZoom, ZoomSpeed, targetZoom);
+            Zoom = Util.MoveAtSpeed(oldZoom, ZoomSpeed, targetZoom);
         }
     }
 

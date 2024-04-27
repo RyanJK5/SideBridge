@@ -1,18 +1,16 @@
 using System;
 using System.Collections.Generic;
-using System.Net.Mime;
-using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
-using MonoGame.Extended.Input.InputListeners;
 using MonoGame.Extended.ViewportAdapters;
 
 namespace SideBridge;
 
 internal class Game {
 
-    private static Game s_current;
+    private static Game s_main;
+    private Game() { }
 
     private TiledWorld _tiledWorld;
     private EntityWorld _entityWorld;
@@ -23,14 +21,14 @@ internal class Game {
     private ParticleEffectHandler _particleEffectHandler;
     private UIHandler _uiHandler;
 
-    public static TiledWorld TiledWorld { get => s_current._tiledWorld; }
-    public static EntityWorld EntityWorld { get => s_current._entityWorld; }
-    public static GameGraphics GameGraphics { get => s_current._gameGraphics; }
-    public static GameCamera GameCamera { get => s_current._gameCamera; }
-    public static SoundEffectHandler SoundEffectHandler { get => s_current._soundEffectHandler; }
-    public static ScoringHandler ScoringHandler { get => s_current._scoringHandler; }
-    public static ParticleEffectHandler ParticleEffectHandler { get => s_current._particleEffectHandler; }
-    public static UIHandler UIHandler { get => s_current._uiHandler; }
+    public static TiledWorld TiledWorld { get => s_main._tiledWorld; }
+    public static EntityWorld EntityWorld { get => s_main._entityWorld; }
+    public static GameGraphics GameGraphics { get => s_main._gameGraphics; }
+    public static GameCamera GameCamera { get => s_main._gameCamera; }
+    public static SoundEffectHandler SoundEffectHandler { get => s_main._soundEffectHandler; }
+    public static ScoringHandler ScoringHandler { get => s_main._scoringHandler; }
+    public static ParticleEffectHandler ParticleEffectHandler { get => s_main._particleEffectHandler; }
+    public static UIHandler UIHandler { get => s_main._uiHandler; }
 
     public static IDrawable[] Drawables() => 
         new IDrawable[] { TiledWorld, EntityWorld, ParticleEffectHandler, UIHandler }
@@ -41,13 +39,12 @@ internal class Game {
     ;
 
     public static void Start() {
-        s_current = new Game();
-        s_current.InitializeFields();
+        s_main = new Game();
+        s_main.InitializeFields();
         ScoringHandler.NewRound();
         GameGraphics.Run();
     }
 
-    private Game() { }
     private void InitializeFields() {
         _gameGraphics = new GameGraphics();
         ContentManager loader = _gameGraphics.Content;
@@ -128,20 +125,5 @@ internal class Game {
             ));
         }
         _uiHandler = new UIHandler(ui.ToArray());
-    }
-
-    public static float Constrict(float val, float min, float max) => MathF.Max(MathF.Min(val, max), min);
-
-    public static float MoveAtSpeed(float val, float speed, float target) {
-        if (val < target) {
-            val += speed;
-        }
-        else if (val > target) {
-            val -= speed;
-        }
-        if (MathF.Abs(val - target) < speed) {
-            val = target;
-        }
-        return val;
     }
 }
