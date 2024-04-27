@@ -129,10 +129,10 @@
 /processorParam:TextureFormat=Color
 /build:img/scorebar-full.png
 
-#begin map1.tmx
+#begin maps/map1.tmx
 /importer:TiledMapImporter
 /processor:TiledMapProcessor
-/build:map1.tmx
+/build:maps/map1.tmx
 
 #begin sfx/arrowhit.ogg
 /importer:OggImporter

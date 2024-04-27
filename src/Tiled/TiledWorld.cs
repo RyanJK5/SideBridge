@@ -171,7 +171,7 @@ public class TiledWorld : IDrawable, IUpdatable {
     }
 
     public void LoadMap(ContentManager loader, WorldType type) {
-        var tiledMap = loader.Load<TiledMap>("map" + (int) type);
+        var tiledMap = loader.Load<TiledMap>("maps/map" + (int) type);
         var tiledMapTiles = tiledMap.TileLayers[0].Tiles;
         var tileSize = _tileSet.TileSize;
         for (var i = 0; i < _tileGrid.Length; i++) {
