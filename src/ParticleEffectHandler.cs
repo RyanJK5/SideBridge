@@ -13,14 +13,15 @@ namespace SideBridge;
 
 public class ParticleEffectHandler {
 
-    private ParticleEffect[] _blockParticleEffects;
+    private readonly ParticleEffect[] _blockParticleEffects;
 
     public ParticleEffectHandler(GraphicsDevice graphics) {
         _blockParticleEffects = new ParticleEffect[Enum.GetValues(typeof(TileType)).Length];
-        _blockParticleEffects[(int) TileType.Blue] = CreateParticleEffect(graphics, new Color(61, 50, 76));
-        _blockParticleEffects[(int) TileType.Red] = CreateParticleEffect(graphics, new Color(124, 54, 39));
-        _blockParticleEffects[(int) TileType.DarkBlue] = CreateParticleEffect(graphics, new Color(20, 16, 25));
-        _blockParticleEffects[(int) TileType.DarkRed] = CreateParticleEffect(graphics, new Color(73, 32, 23));
+        
+        TileType[] types = TileTypes.GetParticleTypes();
+        foreach (TileType type in types) {
+            _blockParticleEffects[(int) type] = CreateParticleEffect(graphics, TileTypes.GetParticleColor(type));
+        }
     }
 
     private static ParticleEffect CreateParticleEffect(GraphicsDevice graphics, Color color) {
