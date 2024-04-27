@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Graphics;
+using System.Security.Cryptography.X509Certificates;
 
 namespace SideBridge;
 
@@ -44,7 +45,7 @@ public class Player : Entity {
     private bool _knockedBack;
 
     private float _bowCharge = 1;
-    public float TimeSinceBow = BowCooldown;
+    public float TimeSinceBow {get; private set; }
     
     private float _appleCharge;
     private float _timeSinceApple;
@@ -53,11 +54,13 @@ public class Player : Entity {
     private float _timeSinceVoid;
 
     public float Health { get; private set; }
+    public int ActiveSlot { get; private set; }
+
     private readonly Keys[] _keyInputs;
 
     private float _walkTime;
-    private SoundEffectInstance _eatSound;
-    private SoundEffectInstance _voidSound;
+    private readonly SoundEffectInstance _eatSound;
+    private readonly SoundEffectInstance _voidSound;
 
     public bool OnGround {
         get => Bounds.Bottom < Game.TiledWorld.HeightInPixels && Bounds.Bottom > 0 &&
@@ -74,27 +77,28 @@ public class Player : Entity {
         get => Team == Team.Blue ? new(420 - Bounds.Width / 2, 180) : new(Game.TiledWorld.WidthInPixels - 420 - Bounds.Width / 2, 180);
     }
 
-    private readonly Hotbar _hotbar;
     private readonly HealthBar _healthBar;
 
-    public Player(Texture2D texture, Hotbar hotbar, HealthBar healthBar, RectangleF bounds, Team team) : base(texture, bounds) {
-        if (team == Team.Blue) {
-            _keyInputs = new Keys[] { Keys.A, Keys.D, Keys.LeftShift, Keys.W, Keys.Q, Keys.D1, Keys.D2, Keys.D3, Keys.D4};
-        }
-        else {
-            _keyInputs = new Keys[] { Keys.Left, Keys.Right, Keys.RightControl, Keys.Up, Keys.NumPad0, Keys.D5, Keys.D6, Keys.D7, Keys.D8};
-        }
-        
-        _hotbar = hotbar;
+    public Player(Texture2D texture, HealthBar healthBar, RectangleF bounds, Team team) : base(texture, bounds) {
+
+        _keyInputs = team == Team.Blue ? Settings.DefaultPlayer1KeyBinds : Settings.DefaultPlayer2KeyBinds;
         _healthBar = healthBar;
         _healthBar.SetPlayer(this);
 
         var mouseListener = new MouseListener();
         mouseListener.MouseDown += TryUseSword;
-
-        for (var i = (int) PlayerAction.Hotbar1; i <= (int) PlayerAction.Hotbar4; i++) {
-            _hotbar.SetSlotBind(i - (int) PlayerAction.Hotbar1, _keyInputs[i]);
-        }
+        mouseListener.MouseWheelMoved += (sender, args) => {
+            if (args.ScrollWheelDelta > 0) {
+                ActiveSlot++;
+                ActiveSlot %= Hotbar.SlotCount;
+            }
+            else if (args.ScrollWheelDelta < 0) {
+                ActiveSlot--;
+                if (ActiveSlot < 0) {
+                    ActiveSlot = Hotbar.SlotCount - 1;
+                }
+            }
+        };
 
         var keyListener = new KeyboardListener();
         keyListener.KeyPressed += (sender, args) => {
@@ -102,6 +106,16 @@ public class Player : Entity {
                 _sprintKeyDown = !Sprinting;
                 if (!_sprintKeyDown) {
                     _sprintHit = false;
+                }
+            }
+            else {
+                PlayerAction[] hotbarSlots = Enum.GetValues<PlayerAction>()[
+                    (int) PlayerAction.Hotbar1..((int) PlayerAction.Hotbar4 + 1)
+                ];
+                for (var i = 0; i < hotbarSlots.Length; i++) {
+                    if (_keyInputs[(int) hotbarSlots[i]] == args.Key) {
+                        ActiveSlot = i;
+                    }
                 }
             }
         };
@@ -117,6 +131,8 @@ public class Player : Entity {
         _eatSound.Volume = 0.8f;
         _voidSound = Game.SoundEffectHandler.CreateInstance(SoundEffectID.Void);
         _voidSound.Volume = 0.5f;
+
+        TimeSinceBow = BowCooldown;
     }
 
     public override void OnCollision(Entity other) {
@@ -166,7 +182,7 @@ public class Player : Entity {
     public override void Draw(SpriteBatch spriteBatch) {
         base.Draw(spriteBatch);
         Vector2 mousePos = Game.GameCamera.ScreenToWorld(Mouse.GetState().Position.ToVector2());
-        if (_hotbar.ActiveSlot == 0) {
+        if (ActiveSlot == Hotbar.SwordSlot) {
             Vector2 center = Bounds.Center;
             Vector2 vecLine = mousePos - center;
             vecLine.Normalize();
@@ -268,22 +284,22 @@ public class Player : Entity {
         if (TimeSinceBow < BowCooldown) {
             TimeSinceBow += gameTime.GetElapsedSeconds();
         }
-        if (_hotbar.ActiveSlot != 1 && _bowCharge > 1) {
+        if (ActiveSlot != Hotbar.BowSlot && _bowCharge > 1) {
             _bowCharge = 1;
             _mouseDown = false;
         }
-        if (_hotbar.ActiveSlot != 3 && _appleCharge > 0) {
+        if (ActiveSlot != Hotbar.AppleSlot && _appleCharge > 0) {
             _appleCharge = 0;
         }
 
-        switch (_hotbar.ActiveSlot) {
-            case 1:
+        switch (ActiveSlot) {
+            case Hotbar.BowSlot:
                 TryShootBow();
                 break;
-            case 2:
+            case Hotbar.BlockSlot:
                 TryModifyBlock();
                 break;
-            case 3:
+            case Hotbar.AppleSlot:
                 TryEatApple(gameTime);
                 break;
         }
@@ -304,7 +320,7 @@ public class Player : Entity {
     }
 
     private void TryUseSword(object sender, MouseEventArgs args) {
-        if (_hotbar.ActiveSlot != 0) {
+        if (ActiveSlot != Hotbar.SwordSlot) {
             return;
         }
         Vector2 mousePos = Game.GameCamera.ScreenToWorld(args.Position.ToVector2());

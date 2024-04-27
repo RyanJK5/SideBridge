@@ -14,8 +14,16 @@ public class GameGraphics : Microsoft.Xna.Framework.Game {
     public int WindowWidth { get => _graphics.PreferredBackBufferWidth; }
     public int WindowHeight { get => _graphics.PreferredBackBufferHeight; }
 
-    public  void AddListeners(params InputListener[] listeners) {
-        Components.Add(new InputListenerComponent(this, listeners));
+    public void AddListeners(params InputListener[] listeners) => 
+        Components.Add(new InputListenerComponent(this, listeners))
+    ;
+
+    public bool IsFullScreen => _graphics.IsFullScreen;
+
+    public void SetFullScreen(bool fullScreen) {
+        if (fullScreen != IsFullScreen) {
+            _graphics.ToggleFullScreen();   
+        }
     }
 
     public GameGraphics() {

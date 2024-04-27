@@ -83,18 +83,16 @@ internal class Game {
         var hotbarDrawPos = new Vector2(_gameGraphics.WindowWidth / 2 - hotbarTexture.Width / 2, 0);
         var healthBar1 = new HealthBar(fullTexture, emptyTexture, bonusTexture, new(10, 10));
         var hotbar1 = new Hotbar(hotbarTexture, hotbarDrawPos);
-        var player1 = new Player(playerTexture, hotbar1, healthBar1, new(0, 0, playerTexture.Width, playerTexture.Height), Team.Blue);
+        var player1 = new Player(playerTexture, healthBar1, new(0, 0, playerTexture.Width, playerTexture.Height), Team.Blue);
         
         hotbar1.SetPlayer(player1);
-        _gameGraphics.Components.Add(new InputListenerComponent(_gameGraphics, hotbar1.CreateInputListeners()));
         _entityWorld.Add(player1);
 
         var hotbar2 = new Hotbar(hotbarTexture, new(_gameGraphics.WindowWidth / 2 - hotbarTexture.Width / 2, _gameGraphics.WindowHeight - hotbarTexture.Height / 2));
         var healthBar2 = new HealthBar(fullTexture, emptyTexture, bonusTexture, new(_gameGraphics.WindowWidth - 10 - fullTexture.Width, _gameGraphics.WindowHeight - fullTexture.Height - 10));
-        var player2 = new Player(playerTexture, hotbar2, healthBar2, new(0, 0, playerTexture.Width, playerTexture.Height), Team.Red);
+        var player2 = new Player(playerTexture, healthBar2, new(0, 0, playerTexture.Width, playerTexture.Height), Team.Red);
         
         hotbar2.SetPlayer(player2);
-        _gameGraphics.Components.Add(new InputListenerComponent(_gameGraphics, hotbar2.CreateInputListeners()));
         _entityWorld.Add(player2);
 
         var scoreBar = new ScoreBar(loader.Load<Texture2D>("img/scorebar-full"), loader.Load<Texture2D>("img/scorebar-empty"), 
