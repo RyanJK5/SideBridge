@@ -6,8 +6,8 @@ namespace SideBridge;
 
 public class SoundEffectHandler {
 
-    private SoundEffect[] _sfx;
-    private SoundEffectInstance[] _reusableInstances;
+    private readonly SoundEffect[] _sfx;
+    private readonly SoundEffectInstance[] _reusableInstances;
 
     public SoundEffectHandler(ContentManager loader) {
         SoundEffectID[] sfxIDs = Enum.GetValues<SoundEffectID>();

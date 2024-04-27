@@ -8,7 +8,7 @@ namespace SideBridge;
 
 #nullable enable
 
-public class EntityWorld : SimpleDrawableGameComponent {
+public class EntityWorld : IDrawable, IUpdatable {
 
     private readonly Bag<Entity> s_entities;
     private readonly SpriteBatch _spriteBatch;
@@ -18,7 +18,7 @@ public class EntityWorld : SimpleDrawableGameComponent {
         _spriteBatch = new(graphicsDevice);
     }
 
-    public override void Update(GameTime gameTime) {
+    public void Update(GameTime gameTime) {
         foreach (Entity entity in s_entities) {
             entity.Update(gameTime);
         }
@@ -37,7 +37,7 @@ public class EntityWorld : SimpleDrawableGameComponent {
         
     }
 
-    public override void Draw(GameTime gameTime) {
+    public void Draw(SpriteBatch spriteBatch) {
         _spriteBatch.Begin(transformMatrix: Game.GameCamera.GetViewMatrix());
         foreach (Entity entity in s_entities) {
             entity.Draw(_spriteBatch);

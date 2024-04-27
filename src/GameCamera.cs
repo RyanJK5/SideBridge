@@ -4,8 +4,11 @@ using MonoGame.Extended;
 
 namespace SideBridge;
 
-public class GameCamera {
+public class GameCamera : IUpdatable {
     
+    public const float MinimumZoom = 0.75f;
+    public const float MaximumZoom = 2f;
+
     private const float MinYZoom = 1.55f;
     private const float SideBoundWidth = 100f;
 
@@ -22,10 +25,6 @@ public class GameCamera {
 
     public float Zoom { get => _camera.Zoom; set => _camera.Zoom = value;}
 
-    public float MinimumZoom { get => _camera.MinimumZoom; set => _camera.MinimumZoom = value; }
-
-    public float MaximumZoom { get => _camera.MaximumZoom; set => _camera.MaximumZoom = value; }
-
     public Vector2 Center { get => _camera.Center; } 
 
     public GameCamera(OrthographicCamera camera, Player p1, Player p2) {
@@ -34,7 +33,7 @@ public class GameCamera {
         _player2 = p2;
     } 
 
-    public void Update() {
+    public void Update(GameTime gameTime) {
         float oldZoom = Zoom;
         float oldY = Center.Y;
 

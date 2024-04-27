@@ -4,7 +4,7 @@ using MonoGame.Extended;
 
 namespace SideBridge;
 
-public class ScoreBar : UI {
+public class ScoreBar : UI, IUpdatable {
 
     private const int TimerWidth = 58;
     public const int MaxScore = 5;
@@ -70,7 +70,7 @@ public class ScoreBar : UI {
 
     public void Pause() => _timeSincePause = PauseLength;
 
-    public override void Update(GameTime gameTime) {
+    public void Update(GameTime gameTime) {
         if (RedWon || BlueWon) {
             return;
         }

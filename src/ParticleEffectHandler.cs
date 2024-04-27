@@ -11,14 +11,14 @@ using MonoGame.Extended.TextureAtlases;
 
 namespace SideBridge;
 
-public class ParticleEffectHandler {
+public class ParticleEffectHandler : IDrawable, IUpdatable {
 
     private readonly ParticleEffect[] _blockParticleEffects;
 
     public ParticleEffectHandler(GraphicsDevice graphics) {
         _blockParticleEffects = new ParticleEffect[Enum.GetValues(typeof(TileType)).Length];
         
-        TileType[] types = TileTypes.GetParticleTypes();
+        TileType[] types = TileTypes.GetBreakableTypes();
         foreach (TileType type in types) {
             _blockParticleEffects[(int) type] = CreateParticleEffect(graphics, TileTypes.GetParticleColor(type));
         }

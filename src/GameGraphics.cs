@@ -1,14 +1,6 @@
-﻿using System;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using MonoGame.Extended;
-using MonoGame.Extended.Particles;
-using MonoGame.Extended.Particles.Modifiers;
-using MonoGame.Extended.Particles.Modifiers.Interpolators;
-using MonoGame.Extended.Particles.Profiles;
-using MonoGame.Extended.TextureAtlases;
 using MonoGame.Extended.Input.InputListeners;
-using System.Collections.Generic;
 
 namespace SideBridge;
 
@@ -48,21 +40,18 @@ public class GameGraphics : Microsoft.Xna.Framework.Game {
     }
 
     protected override void Update(GameTime gameTime) {
-        Game.GameCamera.Update();
         base.Update(gameTime);
-        UI.UpdateUI(gameTime);
-        Game.TiledWorld.Update(gameTime);
-        Game.EntityWorld.Update(gameTime);
-        Game.ParticleEffectHandler.Update(gameTime);
+        foreach (IUpdatable element in Game.Updatables()) {
+            element.Update(gameTime);
+        }
     }
 
     protected override void Draw(GameTime gameTime) {
         GraphicsDevice.Clear(Color.SkyBlue);
-        Game.TiledWorld.Draw(gameTime);
-        Game.EntityWorld.Draw(gameTime);
         _spriteBatch.Begin();
-        UI.DrawUI(_spriteBatch);
-        Game.ParticleEffectHandler.Draw(_spriteBatch);
+        foreach (IDrawable element in Game.Drawables()) {
+            element.Draw(_spriteBatch);
+        }
         _spriteBatch.End();
         base.Draw(gameTime);
     }

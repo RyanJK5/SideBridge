@@ -20,6 +20,7 @@ internal class Game {
     private SoundEffectHandler _soundEffectHandler;
     private ScoringHandler _scoringHandler;
     private ParticleEffectHandler _particleEffectHandler;
+    private UIHandler _uiHandler;
 
     public static TiledWorld TiledWorld { get => s_current._tiledWorld; }
     public static EntityWorld EntityWorld { get => s_current._entityWorld; }
@@ -28,6 +29,15 @@ internal class Game {
     public static SoundEffectHandler SoundEffectHandler { get => s_current._soundEffectHandler; }
     public static ScoringHandler ScoringHandler { get => s_current._scoringHandler; }
     public static ParticleEffectHandler ParticleEffectHandler { get => s_current._particleEffectHandler; }
+    public static UIHandler UIHandler { get => s_current._uiHandler; }
+
+    public static IDrawable[] Drawables() => 
+        new IDrawable[] { TiledWorld, EntityWorld, ParticleEffectHandler, UIHandler }
+    ;
+
+    public static IUpdatable[] Updatables() =>
+        new IUpdatable[] { TiledWorld, EntityWorld, GameCamera, ParticleEffectHandler, UIHandler }
+    ;
 
     public static void Start() {
         s_current = new Game();
@@ -45,6 +55,7 @@ internal class Game {
         _entityWorld = new EntityWorld(graphicsDevice);
 
         _soundEffectHandler = new SoundEffectHandler(loader);
+        
         _particleEffectHandler = new ParticleEffectHandler(graphicsDevice);
 
         var tileSet = new TileSet(loader.Load<Texture2D>("img/blocks"), 3, 3);
@@ -56,8 +67,8 @@ internal class Game {
 
         var viewportAdapter = new BoxingViewportAdapter(_gameGraphics.Window, graphicsDevice, 1920, 1080);
         var camera = new OrthographicCamera(viewportAdapter) {
-            MinimumZoom = 0.75f,
-            MaximumZoom = 2f
+            MinimumZoom = GameCamera.MinimumZoom,
+            MaximumZoom = GameCamera.MaximumZoom
         };
         _gameCamera = new GameCamera(camera, scoringInfo.Player1, scoringInfo.Player2);
     }
@@ -88,6 +99,8 @@ internal class Game {
 
         var scoreBar = new ScoreBar(loader.Load<Texture2D>("img/scorebar-full"), loader.Load<Texture2D>("img/scorebar-empty"), 
             new(hotbarDrawPos.X, hotbarDrawPos.Y + hotbarTexture.Height / 2 + 5));
+
+        _uiHandler = new UIHandler(healthBar1, healthBar2, hotbar1, hotbar2, scoreBar);
 
         return (scoreBar, player1, player2);
     }

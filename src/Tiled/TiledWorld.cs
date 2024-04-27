@@ -6,11 +6,12 @@ using MonoGame.Extended;
 using MonoGame.Extended.Tiled;
 using System;
 using Microsoft.Xna.Framework.Audio;
+using MonoGame.Extended.Sprites;
 
 namespace SideBridge;
 
 #nullable enable
-public class TiledWorld : SimpleDrawableGameComponent {
+public class TiledWorld : IDrawable, IUpdatable {
     private readonly TileSet _tileSet;
     private readonly SpriteBatch _spriteBatch;
 
@@ -32,7 +33,7 @@ public class TiledWorld : SimpleDrawableGameComponent {
         _tileGrid = new Tile[width * height];
     }
     
-    public override void Draw(GameTime gameTime) {
+    public void Draw(SpriteBatch spriteBatch) {
         _spriteBatch.Begin(transformMatrix: Game.GameCamera.GetViewMatrix());
 
         foreach (var tile in _tileGrid) {
@@ -60,7 +61,7 @@ public class TiledWorld : SimpleDrawableGameComponent {
         _spriteBatch.End();
     }
 
-    public override void Update(GameTime gameTime) {
+    public void Update(GameTime gameTime) {
         Point2 mousePos = Game.GameCamera.ScreenToWorld(Mouse.GetState().Position.ToVector2());
         if (Mouse.GetState().RightButton == ButtonState.Pressed) {
             foreach (var tile in _tileGrid) {

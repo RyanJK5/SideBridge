@@ -4,7 +4,7 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace SideBridge;
 
-public abstract class Entity {
+public abstract class Entity : IUpdatable, IDrawable {
 
     public Texture2D Texture;
     public RectangleF Bounds;
