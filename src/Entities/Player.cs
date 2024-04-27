@@ -5,7 +5,6 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Graphics;
-using System.Security.Cryptography.X509Certificates;
 
 namespace SideBridge;
 
@@ -14,7 +13,6 @@ public class Player : Entity {
     private const float MaximumVerticalVelocity = 15f;
     private const float MaximumWalkingVelocity = 5f;
     private const float MaximumHorizontalVelocity = 20f;
-    private const float Gravity = 1f;
 
     private const float HorizontalAcceleration = 1f;
     private const float HorizontalAirAcceleration = 0.4f;
@@ -213,7 +211,7 @@ public class Player : Entity {
         for (int i = 0; i < 20; i++) {
             pos.X += vec.X;
             pos.Y += vec.Y;
-            vec.Y += Gravity;
+            vec.Y += Game.Gravity;
             spriteBatch.DrawCircle(pos, 5, 100, Color.White, 10f);
         }
     }
@@ -501,7 +499,7 @@ public class Player : Entity {
             }
         }
         else {
-            UpdateVelocity(0, Gravity);
+            UpdateVelocity(0, Game.Gravity);
         }
     }
 

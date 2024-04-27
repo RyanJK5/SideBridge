@@ -6,8 +6,6 @@ using System;
 namespace SideBridge;
 
 public class Arrow : Entity {
-    private const float VerticalAcceleration = 1f;
-
     private static Texture2D _arrowTexture;
 
     public readonly float Damage;
@@ -30,7 +28,7 @@ public class Arrow : Entity {
 
     public override void Update(GameTime gameTime) {
         Bounds.Position += Velocity;
-        Velocity.Y += VerticalAcceleration;
+        Velocity.Y += Game.Gravity;
     }
 
     public override void Draw(SpriteBatch spriteBatch) {

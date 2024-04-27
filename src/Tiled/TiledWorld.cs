@@ -4,9 +4,7 @@ using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
 using MonoGame.Extended.Tiled;
-using System;
 using Microsoft.Xna.Framework.Audio;
-using MonoGame.Extended.Sprites;
 
 namespace SideBridge;
 
