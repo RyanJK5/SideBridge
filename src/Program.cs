@@ -1,3 +1,1 @@
-using SideBridge;
-
-Game.Start();
+SideBridge.Game.Start();
