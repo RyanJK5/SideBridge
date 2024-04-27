@@ -77,13 +77,10 @@ public class Player : Entity {
         get => Team == Team.Blue ? new(420 - Bounds.Width / 2, 180) : new(Game.TiledWorld.WidthInPixels - 420 - Bounds.Width / 2, 180);
     }
 
-    private readonly HealthBar _healthBar;
 
-    public Player(Texture2D texture, HealthBar healthBar, RectangleF bounds, Team team) : base(texture, bounds) {
+    public Player(Texture2D texture, RectangleF bounds, Team team) : base(texture, bounds) {
 
         _keyInputs = team == Team.Blue ? Settings.DefaultPlayer1KeyBinds : Settings.DefaultPlayer2KeyBinds;
-        _healthBar = healthBar;
-        _healthBar.SetPlayer(this);
 
         var mouseListener = new MouseListener();
         mouseListener.MouseDown += TryUseSword;

@@ -17,7 +17,9 @@ public class Hotbar : UI {
 
     private Player _player;
 
-    public Hotbar(Texture2D texture, Vector2 drawPos) : base(texture, drawPos) { }
+    public Hotbar(Player player, Texture2D texture, Vector2 drawPos) : base(texture, drawPos) {
+        _player = player;
+    }
 
     public override void Draw(SpriteBatch spriteBatch) {
         spriteBatch.Draw(
@@ -32,6 +34,4 @@ public class Hotbar : UI {
             _player.TimeSinceBow / Player.BowCooldown);
         spriteBatch.FillRectangle(new RectangleF(DrawPos.X + _player.ActiveSlot * SlotSize, DrawPos.Y, SlotSize, SlotSize), Color.White * 0.5f);
     }
-
-    public void SetPlayer(Player player) => _player = player;
 }
