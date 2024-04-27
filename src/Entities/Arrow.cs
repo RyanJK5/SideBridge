@@ -1,7 +1,6 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
-using MonoGame.Extended.Collisions;
 using System;
 
 namespace SideBridge;
@@ -26,7 +25,7 @@ public class Arrow : Entity {
 
     public override void OnTileCollision(Tile tile) {
         Velocity = Vector2.Zero;
-        Game.RemoveEntity(this);
+        Game.EntityWorld.Remove(this);
     }
 
     public override void Update(GameTime gameTime) {

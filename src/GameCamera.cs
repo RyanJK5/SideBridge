@@ -17,6 +17,8 @@ public class GameCamera {
     private const float ZoomSpeed = 0.02f;
 
     private readonly OrthographicCamera _camera;
+    private readonly Player _player1;
+    private readonly Player _player2;
 
     public float Zoom { get => _camera.Zoom; set => _camera.Zoom = value;}
 
@@ -26,24 +28,28 @@ public class GameCamera {
 
     public Vector2 Center { get => _camera.Center; } 
 
-    public GameCamera(OrthographicCamera camera) => _camera = camera;
+    public GameCamera(OrthographicCamera camera, Player p1, Player p2) {
+        _camera = camera;
+        _player1 = p1;
+        _player2 = p2;
+    } 
 
     public void Update() {
         float oldZoom = Zoom;
         float oldY = Center.Y;
 
-        RectangleF p1 = Game.Player1.Bounds;
-        RectangleF p2 = Game.Player2.Bounds;
+        RectangleF p1 = _player1.Bounds;
+        RectangleF p2 = _player2.Bounds;
         
-        Player lowerPlayer = p1.Bottom > p2.Bottom ? Game.Player1 : Game.Player2;
-        Player upperPlayer = p1.Top < p2.Top ? Game.Player1 : Game.Player2;
+        Player lowerPlayer = p1.Bottom > p2.Bottom ? _player1 : _player2;
+        Player upperPlayer = p1.Top < p2.Top ? _player1 : _player2;
         
         Vector2 lowerBottom = lowerPlayer.Bounds.BottomLeft;
         Vector2 upperTop = upperPlayer.Bounds.TopLeft;
 
         // set initial zoom to fit player 1 and 2 horizontally
         float sideBounds = SideBoundWidth / Zoom;
-        float zoomX = Game.WindowWidth / (MathF.Abs(p1.X - p2.Right) + sideBounds * 2f);
+        float zoomX = Game.GameGraphics.WindowWidth / (MathF.Abs(p1.X - p2.Right) + sideBounds * 2f);
         zoomX = Game.Constrict(zoomX, MinimumZoom, MaximumZoom);
         Zoom = zoomX;
         
@@ -53,14 +59,13 @@ public class GameCamera {
         // if default position is too high, try looking at lower default position
         float targetY = DefaultY;
         float targetZoom = zoomX;
-        if (WorldToScreen(lowerBottom).Y > Game.WindowHeight) {
+        if (WorldToScreen(lowerBottom).Y > Game.GameGraphics.WindowHeight) {
             targetY = LowerDefaultY;
         }
         LookAt(new(Center.X, targetY));
 
         // if neither captures both players, try looking directly between both players
         if (WorldToScreen(upperTop).Y < 0) {
-            Console.WriteLine(upperTop.Y);
             if (upperTop.Y < HighestPlayerY) {
                 targetY = oldY;
                 targetZoom = oldZoom;

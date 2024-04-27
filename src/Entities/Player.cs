@@ -60,9 +60,9 @@ public class Player : Entity {
     private SoundEffectInstance _voidSound;
 
     public bool OnGround {
-        get => Bounds.Bottom < Game.MapHeight && Bounds.Bottom > 0 &&
-            TileTypes.Solid(Game.GetTile(Bounds.X, Bounds.Bottom).Type) ||
-            TileTypes.Solid(Game.GetTile(Bounds.Right - 1, Bounds.Bottom).Type);
+        get => Bounds.Bottom < Game.TiledWorld.HeightInPixels && Bounds.Bottom > 0 &&
+            TileTypes.Solid(Game.TiledWorld.GetTile(Bounds.X, Bounds.Bottom).Type) ||
+            TileTypes.Solid(Game.TiledWorld.GetTile(Bounds.Right - 1, Bounds.Bottom).Type);
     }
 
     public bool Sprinting { get => Velocity.X != 0 && _sprintKeyDown; }
@@ -71,7 +71,7 @@ public class Player : Entity {
 
     public readonly Team Team;
     public Vector2 SpawnPosition { 
-        get => Team == Team.Blue ? new(420 - Bounds.Width / 2, 180) : new(Game.MapWidth - 420 - Bounds.Width / 2, 180);
+        get => Team == Team.Blue ? new(420 - Bounds.Width / 2, 180) : new(Game.TiledWorld.WidthInPixels - 420 - Bounds.Width / 2, 180);
     }
 
     private readonly Hotbar _hotbar;
@@ -107,33 +107,33 @@ public class Player : Entity {
         };
         _sprintKeyDown = true;
 
-        Game.AddListeners(mouseListener, keyListener);
+        Game.GameGraphics.AddListeners(mouseListener, keyListener);
 
         Health = MaxRedHealth;
         Team = team;
         Bounds.Position = SpawnPosition;
 
-        _eatSound = Game.GetSoundEffect(SoundEffectID.Eat).CreateInstance();
+        _eatSound = Game.SoundEffectHandler.CreateInstance(SoundEffectID.Eat);
         _eatSound.Volume = 0.8f;
-        _voidSound = Game.GetSoundEffect(SoundEffectID.Void).CreateInstance();
+        _voidSound = Game.SoundEffectHandler.CreateInstance(SoundEffectID.Void);
         _voidSound.Volume = 0.5f;
     }
 
     public override void OnCollision(Entity other) {
-        if (other is Arrow arrow && arrow.PlayerTeam != Team && Game.ContainsEntity(arrow)) {
+        if (other is Arrow arrow && arrow.PlayerTeam != Team && Game.EntityWorld.Contains(arrow)) {
             RegisterArrowKnockback(arrow);
             RegisterDamage(arrow.Damage);
             if (Health != MaxRedHealth) {
-                Game.GetSoundEffect(SoundEffectID.ArrowHit).Play();
+                Game.SoundEffectHandler.PlaySound(SoundEffectID.ArrowHit);
             }
-            Game.RemoveEntity(arrow);
+            Game.EntityWorld.Remove(arrow);
         }
     }
 
     public override void OnTileCollision(Tile tile) {
         if (tile.Type == TileType.Goal) {
-            if (Game.GetGoalTeam(tile) == Team || !Game.ScoreGoal(this)) {
-                Game.GetSoundEffect(SoundEffectID.Goal).Play();
+            if (Game.ScoringHandler.GetGoalTeam(tile) == Team || !Game.ScoringHandler.ScoreGoal(this)) {
+                Game.SoundEffectHandler.PlaySound(SoundEffectID.Goal);
                 OnDeath();
             }
             return;
@@ -165,7 +165,7 @@ public class Player : Entity {
 
     public override void Draw(SpriteBatch spriteBatch) {
         base.Draw(spriteBatch);
-        Vector2 mousePos = Game.ScreenToWorld(Mouse.GetState().Position.ToVector2());
+        Vector2 mousePos = Game.GameCamera.ScreenToWorld(Mouse.GetState().Position.ToVector2());
         if (_hotbar.ActiveSlot == 0) {
             Vector2 center = Bounds.Center;
             Vector2 vecLine = mousePos - center;
@@ -209,7 +209,7 @@ public class Player : Entity {
         Health -= dmg;
         if (Health <= 0) {
             OnDeath();
-            Game.GetSoundEffect(SoundEffectID.Kill).Play();
+            Game.SoundEffectHandler.PlaySound(SoundEffectID.Kill);
         }
     }
 
@@ -257,7 +257,7 @@ public class Player : Entity {
             _walkTime += gameTime.GetElapsedSeconds();
             if (_walkTime >= (Sprinting ? SprintingSoundDelay : WalkingSoundDelay)) { 
                 _walkTime = 0;
-                SoundEffectInstance walkSound = Game.GetSoundEffect(SoundEffects.GetRandomWalkSound()).CreateInstance();
+                SoundEffectInstance walkSound = Game.SoundEffectHandler.CreateInstance(SoundEffects.GetRandomWalkSound());
                 walkSound.Volume = 0.15f;
                 walkSound.Play();
             }
@@ -307,14 +307,14 @@ public class Player : Entity {
         if (_hotbar.ActiveSlot != 0) {
             return;
         }
-        Vector2 mousePos = Game.ScreenToWorld(args.Position.ToVector2());
+        Vector2 mousePos = Game.GameCamera.ScreenToWorld(args.Position.ToVector2());
         Vector2 vecLine = mousePos - (Vector2) Bounds.Center;
         vecLine.Normalize();
         vecLine *= TileReach * TileSize;
 
-        var player = Game.FindEntity<Player>(entity => entity != this && findIntersection(entity.Bounds).intersects);
+        var player = Game.EntityWorld.FindEntity<Player>(entity => entity != this && findIntersection(entity.Bounds).intersects);
         if (player != null) {
-            Tile[] tiles = Game.FindTiles(tile => findIntersection(tile.Bounds).intersects && TileTypes.Solid(tile.Type));
+            Tile[] tiles = Game.TiledWorld.FindTiles(tile => findIntersection(tile.Bounds).intersects && TileTypes.Solid(tile.Type));
             foreach (var tile in tiles) {
                 if (findIntersection(tile.Bounds).distanceAlongLine < findIntersection(player.Bounds).distanceAlongLine) {
                     return;
@@ -323,7 +323,7 @@ public class Player : Entity {
             player.RegisterSwordKnockback(this);
             player.RegisterDamage(OnGround ? SwordDamge : SwordCriticalDamage);
             if (player.Health != MaxRedHealth) {
-                Game.GetSoundEffect(SoundEffectID.SwordHit).Play();
+                Game.SoundEffectHandler.PlaySound(SoundEffectID.SwordHit);
             }
         }
         
@@ -354,17 +354,17 @@ public class Player : Entity {
                 _bowCharge / 9f,
                 Team
             );
-            Game.GetSoundEffect(SoundEffects.GetRandomBowSound()).Play();
+            Game.SoundEffectHandler.PlaySound(SoundEffects.GetRandomBowSound());
 
             
-            var mousePos = Game.ScreenToWorld(mouseState.Position.ToVector2());
+            var mousePos = Game.GameCamera.ScreenToWorld(mouseState.Position.ToVector2());
             var vec = new Vector2(mousePos.X, mousePos.Y) - spawnPos;
             vec.Normalize();
             vec.X *= _bowCharge;
             vec.Y *= _bowCharge;
             
             arrow.Velocity = vec;
-            Game.AddEntity(arrow);
+            Game.EntityWorld.Add(arrow);
 
             _mouseDown = false;
             _bowCharge = 1;
@@ -373,17 +373,17 @@ public class Player : Entity {
     }
 
     private void TryModifyBlock() {
-        Vector2 mousePos = Game.ScreenToWorld(Mouse.GetState().Position.ToVector2());
+        Vector2 mousePos = Game.GameCamera.ScreenToWorld(Mouse.GetState().Position.ToVector2());
         var tileX = (int) (mousePos.X / TileSize) * TileSize;
         var tileY = (int) (mousePos.Y / TileSize) * TileSize;
         bool inRange = Vector2.Distance(new(tileX, tileY), Bounds.Position) < TileReach * TileSize && 
-            tileY / TileSize >= HeightLimit && tileX / TileSize > IslandWidths - 1 && tileX / TileSize < Game.MapWidth / TileSize - IslandWidths;
-        if (Mouse.GetState().LeftButton == ButtonState.Pressed && inRange && Game.GetTile(mousePos.X, mousePos.Y).Type == TileType.Air) {
+            tileY / TileSize >= HeightLimit && tileX / TileSize > IslandWidths - 1 && tileX / TileSize < Game.TiledWorld.WidthInPixels / TileSize - IslandWidths;
+        if (Mouse.GetState().LeftButton == ButtonState.Pressed && inRange && Game.TiledWorld.GetTile(mousePos.X, mousePos.Y).Type == TileType.Air) {
             PlaceTile(tileX, tileY, mousePos);
             return;
         }
         if (Mouse.GetState().RightButton == ButtonState.Pressed && inRange) {
-            Game.DamageTile(Game.GetTile(mousePos.X, mousePos.Y));
+            Game.TiledWorld.DamageTile(Game.TiledWorld.GetTile(mousePos.X, mousePos.Y));
         }
     }
     
@@ -425,7 +425,7 @@ public class Player : Entity {
     }
 
     private void PlaceTile(float tileX, float tileY, Vector2 mousePos) {
-        if (Game.FindEntity<Player>(player => player.Bounds.Intersects(new(tileX, tileY, TileSize, TileSize))) != null) {
+        if (Game.EntityWorld.FindEntity<Player>(player => player.Bounds.Intersects(new(tileX, tileY, TileSize, TileSize))) != null) {
             return;
         }
         Vector2[] adjacentTiles = {
@@ -435,14 +435,14 @@ public class Player : Entity {
             new(0, TileSize)
         };
         foreach (var vec in adjacentTiles) {
-            if (mousePos.X + vec.X > Game.MapWidth || mousePos.X + vec.X < 0 || 
-                mousePos.Y + vec.Y > Game.MapHeight || mousePos.Y + vec.Y < 0) {
+            if (mousePos.X + vec.X > Game.TiledWorld.WidthInPixels || mousePos.X + vec.X < 0 || 
+                mousePos.Y + vec.Y > Game.TiledWorld.HeightInPixels || mousePos.Y + vec.Y < 0) {
                 continue;
             }
-            if (TileTypes.Solid(Game.GetTile(mousePos.X + vec.X, mousePos.Y + vec.Y).Type)) {
+            if (TileTypes.Solid(Game.TiledWorld.GetTile(mousePos.X + vec.X, mousePos.Y + vec.Y).Type)) {
                 var normalBlockType = Team == Team.Red ? TileType.Red : TileType.Blue;
                 var darkBlockType = Team == Team.Red ? TileType.DarkRed : TileType.DarkBlue;
-                Game.SetTile(tileY / TileSize <= HeightLimit ? darkBlockType : normalBlockType, mousePos.X, mousePos.Y);
+                Game.TiledWorld.SetTileWithEffects(tileY / TileSize <= HeightLimit ? darkBlockType : normalBlockType, mousePos.X, mousePos.Y);
                 break;
             }
         }
@@ -493,10 +493,10 @@ public class Player : Entity {
     }
 
     private void ResetPositions() {
-        Bounds.X = Game.Constrict(Bounds.X, 0, Game.MapWidth - Bounds.Width);
-        if (Bounds.Y > Game.MapHeight) {
+        Bounds.X = Game.Constrict(Bounds.X, 0, Game.TiledWorld.WidthInPixels - Bounds.Width);
+        if (Bounds.Y > Game.TiledWorld.HeightInPixels) {
             Bounds.Y = -Bounds.Height * 4;
-            Game.GetSoundEffect(SoundEffectID.Goal).Play();
+            Game.SoundEffectHandler.PlaySound(SoundEffectID.Goal);
         }
     }
 

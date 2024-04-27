@@ -77,10 +77,10 @@ public class ScoreBar : UI {
         if (_timeSincePause > 0) {
             _timeSincePause -= gameTime.GetElapsedSeconds();
             if (_timeSincePause % 1 > (_timeSincePause + gameTime.GetElapsedSeconds()) % 1) {
-                Game.GetSoundEffect(SoundEffectID.Tick).CreateInstance().Play();
+                Game.SoundEffectHandler.PlaySound(SoundEffectID.Tick);
             }
             if (_timeSincePause <= 0) {
-                Game.StartRound();
+                Game.ScoringHandler.StartRound();
             }
             return;
         }
@@ -90,13 +90,13 @@ public class ScoreBar : UI {
         }
         _elapsedTime -= gameTime.GetElapsedSeconds();
         if (_elapsedTime < WarningTick && _elapsedTime + gameTime.GetElapsedSeconds() > WarningTick) {
-            Game.GetSoundEffect(SoundEffectID.Tick).CreateInstance().Play();
+            Game.SoundEffectHandler.PlaySound(SoundEffectID.Tick);
         }
         if (_elapsedTime < 0) {
             _elapsedTime = 0;
             _overtime = true;
-            if (!Game.CheckWin()) {
-                Game.Overtime();
+            if (!Game.ScoringHandler.CheckWin()) {
+                Game.ScoringHandler.Overtime();
             }
         }
     }
@@ -104,11 +104,11 @@ public class ScoreBar : UI {
     public override void Draw(SpriteBatch spriteBatch) {
         spriteBatch.Draw(_emptyTexture, DrawPos, Color.White);
         
-        Vector2 strDimensions = Game.Font.MeasureString(StringTime);
+        Vector2 strDimensions = GameGraphics.Font.MeasureString(StringTime);
         const int xAdj = 1;
         const int yAdj = -2;
         spriteBatch.DrawString(
-            Game.Font, 
+            GameGraphics.Font, 
             StringTime, 
             new(DrawPos.X + Texture.Width / 2 - strDimensions.X / 2 + xAdj, DrawPos.Y + Texture.Height / 2 - strDimensions.Y / 2 + yAdj), 
             _overtime ? Color.Red : Color.White

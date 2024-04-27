@@ -15,7 +15,6 @@ public class HealthBar : UI {
     public HealthBar(Texture2D fullTexture, Texture2D emptyTexture, Texture2D bonusTexture, Vector2 drawPos) : base(fullTexture, drawPos) {
         _emptyTexture = emptyTexture;
         _bonusTexture = bonusTexture;
-        _player = Game.Player1;
     }
 
     public override void Draw(SpriteBatch spriteBatch) {

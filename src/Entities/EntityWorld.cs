@@ -32,13 +32,13 @@ public class EntityWorld : SimpleDrawableGameComponent {
                     oEntity.OnCollision(entity);
                 }
             }
-            Game.CheckTileCollisions(entity);
+            Game.TiledWorld.CheckTileCollisions(entity);
         }
         
     }
 
     public override void Draw(GameTime gameTime) {
-        _spriteBatch.Begin(transformMatrix: Game.GetViewMatrix());
+        _spriteBatch.Begin(transformMatrix: Game.GameCamera.GetViewMatrix());
         foreach (Entity entity in s_entities) {
             entity.Draw(_spriteBatch);
         }

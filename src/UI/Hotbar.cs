@@ -12,23 +12,21 @@ public class Hotbar : UI {
     public int ActiveSlot;
     public int SlotSize { get => Texture.Width / SlotNum; }
 
-    private Team _team;
+    private Player _player;
 
-    public Hotbar(Texture2D texture, Vector2 drawPos, Team team) : base(texture, drawPos) {
-        _team = team;
-    }
+    public Hotbar(Texture2D texture, Vector2 drawPos) : base(texture, drawPos) { }
 
     public override void Draw(SpriteBatch spriteBatch) {
         spriteBatch.Draw(
             Texture, 
             DrawPos,
-            new Rectangle(0, _team == Team.Red ? Texture.Height / 2 : 0, Texture.Width, Texture.Height / 2),
+            new Rectangle(0, _player.Team == Team.Red ? Texture.Height / 2 : 0, Texture.Width, Texture.Height / 2),
             Color.White
         );
 
-        var offset = (DrawPos.Y + Texture.Height / 2 >= Game.WindowHeight) ? -5 : Texture.Height / 2;
+        var offset = (DrawPos.Y + Texture.Height / 2 >= Game.GameGraphics.WindowHeight) ? -5 : Texture.Height / 2;
         spriteBatch.DrawPercentageBar(new RectangleF(DrawPos.X, DrawPos.Y + offset, Texture.Width, 5), 
-            (_team == Team.Red ? Game.Player2.TimeSinceBow : Game.Player1.TimeSinceBow) / Player.BowCooldown);
+            _player.TimeSinceBow / Player.BowCooldown);
         spriteBatch.FillRectangle(new RectangleF(DrawPos.X + ActiveSlot * SlotSize, DrawPos.Y, SlotSize, SlotSize), Color.White * 0.5f);
     }
 
@@ -39,7 +37,7 @@ public class Hotbar : UI {
                 ActiveSlot = slot;
             }
         };
-        Game.AddListeners(keyListener);
+        Game.GameGraphics.AddListeners(keyListener);
     }
 
     public InputListener CreateInputListeners() {
@@ -59,4 +57,6 @@ public class Hotbar : UI {
 
         return mouseListener;
     }
+
+    public void SetPlayer(Player player) => _player = player;
 }
