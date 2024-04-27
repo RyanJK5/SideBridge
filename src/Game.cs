@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net.Mime;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
@@ -62,44 +63,71 @@ internal class Game {
         _tiledWorld = new TiledWorld(_gameGraphics.GraphicsDevice, tileSet, 61, 27);
         _tiledWorld.LoadMap(loader, WorldType.Default);
 
-        var scoringInfo = CreatePlayersAndUI(loader);
-        _scoringHandler = new ScoringHandler(scoringInfo.ScoreBar, scoringInfo.Player1, scoringInfo.Player2);
+        Player[] players = CreatePlayers(loader);
+        CreateUI(loader, players);
 
         var viewportAdapter = new BoxingViewportAdapter(_gameGraphics.Window, graphicsDevice, 1920, 1080);
         var camera = new OrthographicCamera(viewportAdapter) {
             MinimumZoom = GameCamera.MinimumZoom,
             MaximumZoom = GameCamera.MaximumZoom
         };
-        _gameCamera = new GameCamera(camera, scoringInfo.Player1, scoringInfo.Player2);
+        _gameCamera = new GameCamera(camera, players[0], players[1]);
     }
 
-    private (ScoreBar ScoreBar, Player Player1, Player Player2) CreatePlayersAndUI(ContentManager loader) {
-        var hotbarTexture = loader.Load<Texture2D>("img/hotbar");
-        var fullTexture = loader.Load<Texture2D>("img/healthbar-full"); 
-        var emptyTexture = loader.Load<Texture2D>("img/healthbar-empty");
-        var bonusTexture = loader.Load<Texture2D>("img/healthbar-golden");
+    private Player[] CreatePlayers(ContentManager loader) {
+        var players = new Player[2];
         var playerTexture = loader.Load<Texture2D>("img/player");
         
-        var hotbarDrawPos = new Vector2(_gameGraphics.WindowWidth / 2 - hotbarTexture.Width / 2, 0);
+        for (var i = 0; i < players.Length; i++) {
+            players[i] = new Player(
+                playerTexture,
+                playerTexture.Bounds,
+                (Team) i
+            );
+            _entityWorld.Add(players[i]);
+        }
+
+        return players;
+    }
+
+    private void CreateUI(ContentManager loader, Player[] players) {
+        var fullHealthBarTexture = loader.Load<Texture2D>("img/healthbar-full"); 
+        var emptyHealthBarTexture = loader.Load<Texture2D>("img/healthbar-empty");
+        var goldenHealthBarTexture = loader.Load<Texture2D>("img/healthbar-golden");
+        var hotbarTexture = loader.Load<Texture2D>("img/hotbar");
         
-        var player1 = new Player(playerTexture, new(0, 0, playerTexture.Width, playerTexture.Height), Team.Blue);
-        var healthBar1 = new HealthBar(player1, fullTexture, emptyTexture, bonusTexture, new(10, 10));
-        var hotbar1 = new Hotbar(player1, hotbarTexture, hotbarDrawPos);
-        
-        _entityWorld.Add(player1);
+        var ui = new List<UI>();
 
-        var player2 = new Player(playerTexture, new(0, 0, playerTexture.Width, playerTexture.Height), Team.Red);
-        var hotbar2 = new Hotbar(player2, hotbarTexture, new(_gameGraphics.WindowWidth / 2 - hotbarTexture.Width / 2, _gameGraphics.WindowHeight - hotbarTexture.Height / 2));
-        var healthBar2 = new HealthBar(player2, fullTexture, emptyTexture, bonusTexture, new(_gameGraphics.WindowWidth - 10 - fullTexture.Width, _gameGraphics.WindowHeight - fullTexture.Height - 10));
-        
-        _entityWorld.Add(player2);
+        float hotbarX = _gameGraphics.WindowWidth / 2 - hotbarTexture.Width / 2;
+        var scoreBar = new ScoreBar(
+            loader.Load<Texture2D>("img/scorebar-full"), 
+            loader.Load<Texture2D>("img/scorebar-empty"), 
+            new(hotbarX, hotbarTexture.Height / 2 + 5)
+        );
+        ui.Add(scoreBar);
+        _scoringHandler = new ScoringHandler(scoreBar, players[0], players[1]);
 
-        var scoreBar = new ScoreBar(loader.Load<Texture2D>("img/scorebar-full"), loader.Load<Texture2D>("img/scorebar-empty"), 
-            new(hotbarDrawPos.X, hotbarDrawPos.Y + hotbarTexture.Height / 2 + 5));
-
-        _uiHandler = new UIHandler(healthBar1, healthBar2, hotbar1, hotbar2, scoreBar);
-
-        return (scoreBar, player1, player2);
+        for (var i = 0; i < players.Length; i++) {
+            ui.Add(new HealthBar(
+                players[i], 
+                fullHealthBarTexture, 
+                emptyHealthBarTexture, 
+                goldenHealthBarTexture, 
+                (Team) i == Team.Blue 
+                    ? new(10, 10)
+                    : new(_gameGraphics.WindowWidth - 10 - fullHealthBarTexture.Width, 
+                        _gameGraphics.WindowHeight - fullHealthBarTexture.Height - 10)
+            ));
+            ui.Add(new Hotbar(
+                players[i], 
+                hotbarTexture, 
+                (Team) i == Team.Blue
+                    ? new(hotbarX, 0)
+                    : new(_gameGraphics.WindowWidth / 2 - hotbarTexture.Width / 2, 
+                        _gameGraphics.WindowHeight - hotbarTexture.Height / 2)
+            ));
+        }
+        _uiHandler = new UIHandler(ui.ToArray());
     }
 
     public static float Constrict(float val, float min, float max) => MathF.Max(MathF.Min(val, max), min);
