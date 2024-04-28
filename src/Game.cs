@@ -1,6 +1,4 @@
 using System.Collections.Generic;
-using System.Threading;
-using System.Timers;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
@@ -31,7 +29,8 @@ internal class Game {
     public static ParticleEffectHandler ParticleEffectHandler { get => s_main._particleEffectHandler; }
     public static UIHandler UIHandler { get => s_main._uiHandler; }
 
-    public const float Gravity = 1f;
+    public const float Gravity = 1f * NativeFPS;
+    public const float NativeFPS = 60f;
 
     public static IDrawable[] Drawables() => 
         new IDrawable[] { TiledWorld, EntityWorld, ParticleEffectHandler, UIHandler }

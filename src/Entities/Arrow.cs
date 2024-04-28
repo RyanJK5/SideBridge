@@ -25,7 +25,8 @@ public class Arrow : Entity {
     public override void OnTileCollision(Tile tile) => Game.EntityWorld.Remove(this);
 
     public override void Update(GameTime gameTime) {
-        Bounds.Position += Velocity;
+        Console.WriteLine(Bounds.Position);
+        Bounds.Position += Velocity * gameTime.GetElapsedSeconds();
         Velocity.Y += Game.Gravity;
     }
 

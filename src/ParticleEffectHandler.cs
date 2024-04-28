@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
 using MonoGame.Extended.Particles;
@@ -53,7 +54,7 @@ public class ParticleEffectHandler : IDrawable, IUpdatable {
 
     public void Draw(SpriteBatch spriteBatch) {
         foreach (var particleEffect in _blockParticleEffects) {
-            if (particleEffect != null) {
+            if (particleEffect is not null) {
                 spriteBatch.Draw(particleEffect);
             }
         }
@@ -69,5 +70,9 @@ public class ParticleEffectHandler : IDrawable, IUpdatable {
 
     public void SpawnParticles(TileType type, Vector2 pos) => _blockParticleEffects[(int) type]?.Trigger(pos);
     
-
+    public void UnloadContent() {
+        foreach (var effect in _blockParticleEffects) {
+            effect?.Dispose();
+        }
+    }
 }

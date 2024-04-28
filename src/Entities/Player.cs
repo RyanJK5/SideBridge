@@ -10,14 +10,14 @@ namespace SideBridge;
 
 public class Player : Entity {
 
-    private const float MaximumVerticalVelocity = 15f;
-    private const float MaximumWalkingVelocity = 5f;
-    private const float MaximumHorizontalVelocity = 20f;
+    private const float MaximumVerticalVelocity = 15f * Game.NativeFPS;
+    private const float MaximumWalkingVelocity = 5f * Game.NativeFPS;
+    private const float MaximumHorizontalVelocity = 20f * Game.NativeFPS;
 
-    private const float HorizontalAcceleration = 1f;
-    private const float HorizontalAirAcceleration = 0.4f;
-    private const float Friction = 1f;
-    private const float AirResistance = 0.2f;
+    private const float HorizontalAcceleration = 1f * Game.NativeFPS;
+    private const float HorizontalAirAcceleration = 0.4f * Game.NativeFPS;
+    private const float Friction = 1f * Game.NativeFPS;
+    private const float AirResistance = 0.2f * Game.NativeFPS;
 
     private const float MaxRedHealth = 20;
     private const float SwordDamge = 6f;
@@ -28,7 +28,9 @@ public class Player : Entity {
     private const int IslandWidths = 10;
 
     public const float BowCooldown = 3f;
-    private const float MaxBowCharge = 45f;
+    private const float BowChargeTime = 1.5f;
+    private const float ArrowDamageFactor = 4.5f;
+    private const float ArrowVelocityFactor = 45f * Game.NativeFPS;
 
     private const float AppleEatTime = 1.5f;
     private const float AppleCooldown = 0.2f;
@@ -42,7 +44,7 @@ public class Player : Entity {
     private bool _mouseDown;
     private bool _knockedBack;
 
-    private float _bowCharge = 1;
+    private float _bowCharge;
     public float TimeSinceBow {get; private set; }
     
     private float _appleCharge;
@@ -197,20 +199,19 @@ public class Player : Entity {
             spriteBatch.DrawPercentageBar(barBounds, _voidCharge / VoidTime, false);
         }
 
-        if (_bowCharge == 1) {
+        if (_bowCharge == 0) {
             return;
         }
 
         var playerPos = Bounds.Center;
         var vec = new Vector2(mousePos.X, mousePos.Y) - (Vector2) Bounds.Center;
         vec.Normalize();
-        vec.X *= _bowCharge;
-        vec.Y *= _bowCharge;
+        vec *= _bowCharge / BowChargeTime * ArrowVelocityFactor;
 
         var pos = new Vector2(playerPos.X, playerPos.Y);
         for (int i = 0; i < 20; i++) {
-            pos.X += vec.X;
-            pos.Y += vec.Y;
+            pos.X += vec.X / Game.NativeFPS;
+            pos.Y += vec.Y / Game.NativeFPS;
             vec.Y += Game.Gravity;
             spriteBatch.DrawCircle(pos, 5, 100, Color.White, 10f);
         }
@@ -226,7 +227,7 @@ public class Player : Entity {
 
     private void RegisterArrowKnockback(Arrow arrow) {
         Velocity = arrow.Velocity / 5f;
-        Velocity.Y = -2f;
+        Velocity.Y = -2f * Game.NativeFPS;
         _sprintKeyDown = false;
         _knockedBack = true;
     }
@@ -249,8 +250,8 @@ public class Player : Entity {
         Velocity = Vector2.Zero;
         Bounds.Position = SpawnPosition;
         _sprintKeyDown = true;
-        _bowCharge = 1f;
         TimeSinceBow = BowCooldown;
+        _bowCharge = 0;
         _appleCharge = 0;
         _timeSinceApple = 0;
         _eatSound.Stop();
@@ -259,7 +260,7 @@ public class Player : Entity {
     public override void Update(GameTime gameTime) {
         SetVerticalVelocity();
         SetHorizontalVelocity();
-        UpdatePosition();
+        UpdatePosition(gameTime);
         ResetPositions();
 
         _timeSinceApple += gameTime.GetElapsedSeconds();
@@ -279,8 +280,8 @@ public class Player : Entity {
         if (TimeSinceBow < BowCooldown) {
             TimeSinceBow += gameTime.GetElapsedSeconds();
         }
-        if (ActiveSlot != Hotbar.BowSlot && _bowCharge > 1) {
-            _bowCharge = 1;
+        if (ActiveSlot != Hotbar.BowSlot && _bowCharge > 0) {
+            _bowCharge = 0;
             _mouseDown = false;
         }
         if (ActiveSlot != Hotbar.AppleSlot && _appleCharge > 0) {
@@ -293,7 +294,7 @@ public class Player : Entity {
 
         switch (ActiveSlot) {
             case Hotbar.BowSlot:
-                TryShootBow();
+                TryShootBow(gameTime);
                 break;
             case Hotbar.BlockSlot:
                 TryModifyBlock();
@@ -305,17 +306,17 @@ public class Player : Entity {
         TryVoid(gameTime);
     }
 
-    private void UpdatePosition() {
+    private void UpdatePosition(GameTime gameTime) {
         if (!_knockedBack && (_bowCharge > 1 || _appleCharge > 0 || _voidCharge > 0)) {
-            Bounds.X += Velocity.X / 4;
+            Bounds.X += Velocity.X / 4 * gameTime.GetElapsedSeconds();
         }
         else if (!_knockedBack && Sprinting) {
-            Bounds.X += Velocity.X * 1.5f;
+            Bounds.X += Velocity.X * 1.5f * gameTime.GetElapsedSeconds();
         }
         else {
-            Bounds.X += Velocity.X;
+            Bounds.X += Velocity.X * gameTime.GetElapsedSeconds();
         }
-        Bounds.Y += Velocity.Y;
+        Bounds.Y += Velocity.Y * gameTime.GetElapsedSeconds();
     }
 
     private void TryUseSword(object sender, MouseEventArgs args) {
@@ -348,16 +349,16 @@ public class Player : Entity {
         }
     }
 
-    private void TryShootBow() {
+    private void TryShootBow(GameTime gameTime) {
         if (TimeSinceBow < BowCooldown) {
             return;
         }
         var mouseState = Mouse.GetState();
         if (mouseState.LeftButton == ButtonState.Pressed) {
             _mouseDown = true;
-            _bowCharge += 0.5f;
-            if (_bowCharge > MaxBowCharge) {
-                _bowCharge = MaxBowCharge;
+            _bowCharge += gameTime.GetElapsedSeconds();
+            if (_bowCharge > BowChargeTime) {
+                _bowCharge = BowChargeTime;
             }
         }
         if (_mouseDown && mouseState.LeftButton == ButtonState.Released) {
@@ -366,7 +367,7 @@ public class Player : Entity {
             
             var arrow = new Arrow(
                 new(spawnPos.X, spawnPos.Y, arrowTexture.Width, 24), 
-                _bowCharge / 9f,
+                _bowCharge / BowChargeTime * ArrowDamageFactor,
                 Team
             );
             Game.SoundEffectHandler.PlaySound(SoundEffects.GetRandomBowSound());
@@ -375,14 +376,12 @@ public class Player : Entity {
             var mousePos = Game.GameCamera.ScreenToWorld(mouseState.Position.ToVector2());
             var vec = new Vector2(mousePos.X, mousePos.Y) - spawnPos;
             vec.Normalize();
-            vec.X *= _bowCharge;
-            vec.Y *= _bowCharge;
-            
+            vec *= _bowCharge / BowChargeTime * ArrowVelocityFactor;
             arrow.Velocity = vec;
             Game.EntityWorld.Add(arrow);
 
             _mouseDown = false;
-            _bowCharge = 1;
+            _bowCharge = 0;
             TimeSinceBow = 0;
         }
     }
@@ -499,7 +498,7 @@ public class Player : Entity {
     private void SetVerticalVelocity() {
         if  (OnGround) {
             if (Keyboard.GetState().IsKeyDown(_keyInputs[(int) PlayerAction.Jump])) {
-                Velocity.Y = -11f;
+                Velocity.Y = -11f * Game.NativeFPS;
             }
         }
         else {

@@ -46,6 +46,11 @@ public class GameGraphics : Microsoft.Xna.Framework.Game {
         Font = Content.Load<SpriteFont>("font");
     }
 
+    protected override void UnloadContent() {
+        base.UnloadContent();
+        Game.ParticleEffectHandler.UnloadContent();
+    }
+
     protected override void Update(GameTime gameTime) {
         base.Update(gameTime);
         foreach (IUpdatable element in Game.Updatables()) {
