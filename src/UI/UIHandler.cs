@@ -8,6 +8,8 @@ public class UIHandler : IDrawable, IUpdatable {
     
     private readonly Bag<UI> _allUI;
 
+    private static bool CanDrawUI(UI ui) => !ui.InGameUI || !Settings.LobbyMode;
+
     public UIHandler(params UI[] allUI) {
         _allUI = new Bag<UI>();
         foreach (UI ui in allUI) {
@@ -17,13 +19,15 @@ public class UIHandler : IDrawable, IUpdatable {
 
     public void Draw(SpriteBatch spriteBatch) {
         foreach (UI ui in _allUI) {
-            ui.Draw(spriteBatch);
+            if (CanDrawUI(ui)) {
+                ui.Draw(spriteBatch);
+            }
         }
     }
 
     public void Update(GameTime gameTime) {
         foreach (UI ui in _allUI) {
-            if (ui is IUpdatable updatable) {
+            if (ui is IUpdatable updatable && CanDrawUI(ui)) {
                 updatable.Update(gameTime);
             }
         }

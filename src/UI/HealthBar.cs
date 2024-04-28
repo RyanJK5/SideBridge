@@ -8,12 +8,12 @@ public class HealthBar : UI {
     private Texture2D _emptyTexture;
     private Texture2D _bonusTexture;
 
-    private Player _player;
+    private readonly Player _player;
     
     public int CellWidth { get => _emptyTexture.Width / 20; }
 
     public HealthBar(Player player, Texture2D fullTexture, Texture2D emptyTexture, Texture2D bonusTexture, 
-        Vector2 drawPos) : base(fullTexture, drawPos) {
+        Vector2 drawPos) : base(fullTexture, drawPos, true) {
         _player = player;
         _emptyTexture = emptyTexture;
         _bonusTexture = bonusTexture;

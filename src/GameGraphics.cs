@@ -7,7 +7,7 @@ namespace SideBridge;
 public class GameGraphics : Microsoft.Xna.Framework.Game {
 
     private SpriteBatch _spriteBatch;
-    private GraphicsDeviceManager _graphics;
+    private readonly GraphicsDeviceManager _graphics;
 
     public static SpriteFont Font { get; private set; }
 

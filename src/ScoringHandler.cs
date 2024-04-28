@@ -4,9 +4,9 @@ namespace SideBridge;
 
 public class ScoringHandler {
 
-    private ScoreBar _scoreBar;
-    private Player _player1;
-    private Player _player2;
+    private readonly ScoreBar _scoreBar;
+    private readonly Player _player1;
+    private readonly Player _player2;
 
     public ScoringHandler(ScoreBar scoreBar, Player player1, Player player2) {
         _scoreBar = scoreBar;
@@ -67,7 +67,7 @@ public class ScoringHandler {
         }
     }
 
-    public Team GetGoalTeam(Tile goal) {
+    public static Team GetGoalTeam(Tile goal) {
         if (goal.Type != TileType.Goal) {
             throw new ArgumentException("goal must be hold TileType TileType.Goal");
         }

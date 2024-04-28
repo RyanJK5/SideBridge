@@ -63,7 +63,7 @@ public class ScoreBar : UI, IUpdatable {
 
     private readonly Texture2D _emptyTexture;
 
-    public ScoreBar(Texture2D fullTexture, Texture2D emptyTexture, Vector2 drawPos) : base(fullTexture, drawPos) {
+    public ScoreBar(Texture2D fullTexture, Texture2D emptyTexture, Vector2 drawPos) : base(fullTexture, drawPos, true) {
         _emptyTexture = emptyTexture;
         _elapsedTime = GameLength;
     }
@@ -102,6 +102,9 @@ public class ScoreBar : UI, IUpdatable {
     }
 
     public override void Draw(SpriteBatch spriteBatch) {
+        if (Settings.LobbyMode) {
+            return;
+        }
         spriteBatch.Draw(_emptyTexture, DrawPos, Color.White);
         
         Vector2 strDimensions = GameGraphics.Font.MeasureString(StringTime);

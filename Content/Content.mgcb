@@ -129,6 +129,11 @@
 /processorParam:TextureFormat=Color
 /build:img/scorebar-full.png
 
+#begin maps/map0.tmx
+/importer:TiledMapImporter
+/processor:TiledMapProcessor
+/build:maps/map0.tmx
+
 #begin maps/map1.tmx
 /importer:TiledMapImporter
 /processor:TiledMapProcessor
@@ -230,11 +235,11 @@
 /processorParam:Quality=Best
 /build:sfx/eat.ogg
 
-#begin sfx/goal.ogg
+#begin sfx/teleport.ogg
 /importer:OggImporter
 /processor:SoundEffectProcessor
 /processorParam:Quality=Best
-/build:sfx/goal.ogg
+/build:sfx/teleport.ogg
 
 #begin sfx/kill.ogg
 /importer:OggImporter

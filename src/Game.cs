@@ -42,7 +42,6 @@ internal class Game {
     public static void Start() {
         s_main = new Game();
         s_main.InitializeFields();
-        ScoringHandler.NewRound();
         GameGraphics.Run();
     }
 
@@ -59,7 +58,8 @@ internal class Game {
 
         var tileSet = new TileSet(loader.Load<Texture2D>("img/blocks"), 3, 3);
         _tiledWorld = new TiledWorld(_gameGraphics.GraphicsDevice, tileSet, 61, 27);
-        _tiledWorld.LoadMap(loader, WorldType.Default);
+        _tiledWorld.LoadMap(loader, WorldType.Lobby);
+        Settings.LobbyMode = true;
 
         Player[] players = CreatePlayers(loader);
         CreateUI(loader, players);

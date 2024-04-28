@@ -143,8 +143,8 @@ public class Player : Entity {
 
     public override void OnTileCollision(Tile tile) {
         if (tile.Type == TileType.Goal) {
-            if (Game.ScoringHandler.GetGoalTeam(tile) == Team || !Game.ScoringHandler.ScoreGoal(this)) {
-                Game.SoundEffectHandler.PlaySound(SoundEffectID.Goal);
+            if (ScoringHandler.GetGoalTeam(tile) == Team || !Game.ScoringHandler.ScoreGoal(this)) {
+                Game.SoundEffectHandler.PlaySound(SoundEffectID.Teleport);
                 OnDeath();
             }
             return;
@@ -285,6 +285,11 @@ public class Player : Entity {
         }
         if (ActiveSlot != Hotbar.AppleSlot && _appleCharge > 0) {
             _appleCharge = 0;
+        }
+
+        if (Settings.LobbyMode) {
+            ActiveSlot = -1;
+            return;
         }
 
         switch (ActiveSlot) {
@@ -507,7 +512,7 @@ public class Player : Entity {
         Bounds.X = Util.Constrict(Bounds.X, 0, Game.TiledWorld.WidthInPixels - Bounds.Width);
         if (Bounds.Y > Game.TiledWorld.HeightInPixels) {
             Bounds.Y = -Bounds.Height * 4;
-            Game.SoundEffectHandler.PlaySound(SoundEffectID.Goal);
+            Game.SoundEffectHandler.CreateInstance(SoundEffectID.Teleport).Play();
         }
     }
 

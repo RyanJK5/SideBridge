@@ -30,7 +30,7 @@ public enum SoundEffectID {
     Win,
     Eat,
     Void,
-    Goal
+    Teleport
 }
 
 public static class SoundEffects {

@@ -1,5 +1,6 @@
 namespace SideBridge;
 
 public enum WorldType {
-    Default = 1
+    Lobby,
+    Default
 }

@@ -5,12 +5,14 @@ namespace SideBridge;
 
 public abstract class UI : IDrawable {
 
-    protected Texture2D Texture;
-    protected Vector2 DrawPos;
+    public readonly bool InGameUI;
+    protected readonly Texture2D Texture;
+    protected readonly Vector2 DrawPos;
 
-    public UI(Texture2D texture, Vector2 drawPos) {
+    public UI(Texture2D texture, Vector2 drawPos, bool inGameUI) {
         Texture = texture;
         DrawPos = drawPos;
+        InGameUI = inGameUI;
     }
 
     public abstract void Draw(SpriteBatch spriteBatch);

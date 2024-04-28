@@ -8,6 +8,7 @@ public class Hotbar : UI {
 
     public const int SlotCount = 4;
 
+    public const int HotbarDisabled = -1;
     public const int SwordSlot = 0;
     public const int BowSlot = 1;
     public const int BlockSlot = 2;
@@ -15,11 +16,9 @@ public class Hotbar : UI {
 
     public int SlotSize { get => Texture.Width / SlotCount; }
 
-    private Player _player;
+    private readonly Player _player;
 
-    public Hotbar(Player player, Texture2D texture, Vector2 drawPos) : base(texture, drawPos) {
-        _player = player;
-    }
+    public Hotbar(Player player, Texture2D texture, Vector2 drawPos) : base(texture, drawPos, true) => _player = player;
 
     public override void Draw(SpriteBatch spriteBatch) {
         spriteBatch.Draw(

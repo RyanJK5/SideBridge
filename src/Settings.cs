@@ -29,6 +29,9 @@ public static class Settings {
         Keys.D8
     };
 
+    public static bool LobbyMode { get; set; }
+    public static bool HotbarActive => LobbyMode;
+
     public static float MasterVolume { 
         get => SoundEffect.MasterVolume; 
         set => SoundEffect.MasterVolume = value; 
@@ -38,6 +41,4 @@ public static class Settings {
         get => Game.GameGraphics.IsFullScreen; 
         set => Game.GameGraphics.SetFullScreen(value); 
     }
-
-
 }
