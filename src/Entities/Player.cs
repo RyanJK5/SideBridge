@@ -19,13 +19,22 @@ public class Player : Entity {
     private const float Friction = 1f * Game.NativeFPS;
     private const float AirResistance = 0.2f * Game.NativeFPS;
 
+    private const float SwordKnockbackX = 5f * Game.NativeFPS;
+    private const float SwordKnockbackY = 8f * Game.NativeFPS;
+    
+    private const float ArrowKnockbackXFactor = 0.2f;
+    private const float ArrowKnockbackY = 2f * Game.NativeFPS;
+    
+    private const float SprintHitKnockbackFactor = 1.5f;
+    private const float AirKnockbackFactor = 2f;
+
+    private const float SprintVelocityFactor = 1.5f;
+    private const float SlowWalkVelocityFactor = 0.25f;
+
     private const float MaxRedHealth = 20;
     private const float SwordDamge = 6f;
     private const float SwordCriticalDamage = 7.5f;
     private const float TileReach = 3.5f;
-    private const int TileSize = 40;
-    public const int HeightLimit = 8;
-    private const int IslandWidths = 10;
 
     public const float BowCooldown = 3f;
     private const float BowChargeTime = 1.5f;
@@ -183,7 +192,7 @@ public class Player : Entity {
             Vector2 center = Bounds.Center;
             Vector2 vecLine = mousePos - center;
             vecLine.Normalize();
-            vecLine *= TileReach * TileSize;
+            vecLine *= TileReach * Game.TiledWorld.TileSize;
             
             spriteBatch.DrawLine(center.X, center.Y, center.X + vecLine.X, center.Y + vecLine.Y, Color.GhostWhite * 0.5f, 20f);
         }
@@ -226,20 +235,22 @@ public class Player : Entity {
     }
 
     private void RegisterArrowKnockback(Arrow arrow) {
-        Velocity = arrow.Velocity / 5f;
-        Velocity.Y = -2f * Game.NativeFPS;
+        Velocity = arrow.Velocity * ArrowKnockbackXFactor;
+        Velocity.Y = -ArrowKnockbackY;
         _sprintKeyDown = false;
         _knockedBack = true;
     }
 
     private void RegisterSwordKnockback(Player player) {
-        var knockback = new Vector2(player.Bounds.Center.X < Bounds.Center.X ? 5f : -5f, -8f);
+        var knockback = new Vector2(
+            player.Bounds.Center.X < Bounds.Center.X ? SwordKnockbackX : -SwordKnockbackX, 
+            -SwordKnockbackY);
         if (player.Sprinting && !player._sprintHit) {
-            knockback.X *= 1.5f;
+            knockback.X *= SprintHitKnockbackFactor;
             player._sprintHit = true;
         }
         if (!OnGround) {
-            knockback.X *= 2f;
+            knockback.X *= AirKnockbackFactor;
         }
         Velocity = knockback;
         _knockedBack = true;
@@ -307,11 +318,11 @@ public class Player : Entity {
     }
 
     private void UpdatePosition(GameTime gameTime) {
-        if (!_knockedBack && (_bowCharge > 1 || _appleCharge > 0 || _voidCharge > 0)) {
-            Bounds.X += Velocity.X / 4 * gameTime.GetElapsedSeconds();
+        if (!_knockedBack && (_bowCharge > 0 || _appleCharge > 0 || _voidCharge > 0)) {
+            Bounds.X += Velocity.X * SlowWalkVelocityFactor * gameTime.GetElapsedSeconds();
         }
         else if (!_knockedBack && Sprinting) {
-            Bounds.X += Velocity.X * 1.5f * gameTime.GetElapsedSeconds();
+            Bounds.X += Velocity.X * SprintVelocityFactor * gameTime.GetElapsedSeconds();
         }
         else {
             Bounds.X += Velocity.X * gameTime.GetElapsedSeconds();
@@ -326,7 +337,7 @@ public class Player : Entity {
         Vector2 mousePos = Game.GameCamera.ScreenToWorld(args.Position.ToVector2());
         Vector2 vecLine = mousePos - (Vector2) Bounds.Center;
         vecLine.Normalize();
-        vecLine *= TileReach * TileSize;
+        vecLine *= TileReach * Game.TiledWorld.TileSize;
 
         var player = Game.EntityWorld.FindEntity<Player>(entity => entity != this && findIntersection(entity.Bounds).intersects);
         if (player != null) {
@@ -387,11 +398,15 @@ public class Player : Entity {
     }
 
     private void TryModifyBlock() {
+        int tileSize = Game.TiledWorld.TileSize;
+        
         Vector2 mousePos = Game.GameCamera.ScreenToWorld(Mouse.GetState().Position.ToVector2());
-        var tileX = (int) (mousePos.X / TileSize) * TileSize;
-        var tileY = (int) (mousePos.Y / TileSize) * TileSize;
-        bool inRange = Vector2.Distance(new(tileX, tileY), Bounds.Position) < TileReach * TileSize && 
-            tileY / TileSize >= HeightLimit && tileX / TileSize > IslandWidths - 1 && tileX / TileSize < Game.TiledWorld.WidthInPixels / TileSize - IslandWidths;
+        var tileX = (int) (mousePos.X / tileSize) * tileSize;
+        var tileY = (int) (mousePos.Y / tileSize) * tileSize;
+        bool inRange = Vector2.Distance(new(tileX, tileY), Bounds.Position) < TileReach * tileSize && 
+            tileY / tileSize >= TiledWorld.HeightLimit && 
+            tileX / tileSize > TiledWorld.IslandWidths - 1 && 
+            tileX / tileSize < Game.TiledWorld.WidthInPixels / tileSize - TiledWorld.IslandWidths;
         if (Mouse.GetState().LeftButton == ButtonState.Pressed && inRange && Game.TiledWorld.GetTile(mousePos.X, mousePos.Y).Type == TileType.Air) {
             PlaceTile(tileX, tileY, mousePos);
             return;
@@ -439,14 +454,16 @@ public class Player : Entity {
     }
 
     private void PlaceTile(float tileX, float tileY, Vector2 mousePos) {
-        if (Game.EntityWorld.FindEntity<Player>(player => player.Bounds.Intersects(new(tileX, tileY, TileSize, TileSize))) != null) {
+        int tileSize = Game.TiledWorld.TileSize;
+
+        if (Game.EntityWorld.FindEntity<Player>(player => player.Bounds.Intersects(new(tileX, tileY, tileSize, tileSize))) != null) {
             return;
         }
         Vector2[] adjacentTiles = {
-            new(-TileSize, 0),
-            new(0, -TileSize),
-            new(TileSize, 0),
-            new(0, TileSize)
+            new(-tileSize, 0),
+            new(0, -tileSize),
+            new(tileSize, 0),
+            new(0, tileSize)
         };
         foreach (var vec in adjacentTiles) {
             if (mousePos.X + vec.X > Game.TiledWorld.WidthInPixels || mousePos.X + vec.X < 0 || 
@@ -456,7 +473,7 @@ public class Player : Entity {
             if (TileTypes.Solid(Game.TiledWorld.GetTile(mousePos.X + vec.X, mousePos.Y + vec.Y).Type)) {
                 var normalBlockType = Team == Team.Red ? TileType.Red : TileType.Blue;
                 var darkBlockType = Team == Team.Red ? TileType.DarkRed : TileType.DarkBlue;
-                Game.TiledWorld.SetTileWithEffects(tileY / TileSize <= HeightLimit ? darkBlockType : normalBlockType, mousePos.X, mousePos.Y);
+                Game.TiledWorld.SetTileWithEffects(tileY / tileSize <= TiledWorld.HeightLimit ? darkBlockType : normalBlockType, mousePos.X, mousePos.Y);
                 break;
             }
         }

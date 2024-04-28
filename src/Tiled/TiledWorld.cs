@@ -10,6 +10,11 @@ namespace SideBridge;
 
 #nullable enable
 public class TiledWorld : IDrawable, IUpdatable {
+
+    public const int HeightLimit = 8;
+    public const int IslandWidths = 8;
+
+
     private readonly TileSet _tileSet;
     private readonly SpriteBatch _spriteBatch;
 
