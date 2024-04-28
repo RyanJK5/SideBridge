@@ -22,6 +22,11 @@ public class SoundEffectHandler {
     public void PlaySound(SoundEffectID id) {
         var index = (int) id;
         TryCreateReusableInstance(id);
+        
+        if (_reusableInstances[index].State == SoundState.Playing) {
+            CreateInstance(id).Play();
+            return;
+        }
         _reusableInstances[index].Play();
     }
 
