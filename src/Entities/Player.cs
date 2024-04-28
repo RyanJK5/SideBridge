@@ -71,24 +71,23 @@ public class Player : Entity {
     private readonly SoundEffectInstance _eatSound;
     private readonly SoundEffectInstance _voidSound;
 
-    public bool OnGround {
-        get => Bounds.Bottom < Game.TiledWorld.HeightInPixels && Bounds.Bottom > 0 &&
-            TileTypes.Solid(Game.TiledWorld.GetTile(Bounds.X, Bounds.Bottom).Type) ||
-            TileTypes.Solid(Game.TiledWorld.GetTile(Bounds.Right - 1, Bounds.Bottom).Type);
-    }
+    public bool OnGround => 
+        Bounds.Bottom < Game.TiledWorld.HeightInPixels && 
+        Bounds.Bottom > 0 &&
+        (TileTypes.Solid(Game.TiledWorld.GetTile(Bounds.X, Bounds.Bottom).Type) ||
+        TileTypes.Solid(Game.TiledWorld.GetTile(Bounds.Right - 1, Bounds.Bottom).Type));
 
     public bool Sprinting { get => Velocity.X != 0 && _sprintKeyDown; }
     private bool _sprintKeyDown;
     private bool _sprintHit;
 
     public readonly Team Team;
-    public Vector2 SpawnPosition { 
-        get => Team == Team.Blue ? new(420 - Bounds.Width / 2, 180) : new(Game.TiledWorld.WidthInPixels - 420 - Bounds.Width / 2, 180);
-    }
+    public Vector2 SpawnPosition => Team == Team.Blue 
+        ? new(420 - Bounds.Width / 2, 180) 
+        : new(Game.TiledWorld.WidthInPixels - 420 - Bounds.Width / 2, 180);
 
 
     public Player(Texture2D texture, RectangleF bounds, Team team) : base(texture, bounds) {
-
         _keyInputs = team == Team.Blue ? Settings.DefaultPlayer1KeyBinds : Settings.DefaultPlayer2KeyBinds;
 
         var mouseListener = new MouseListener();
@@ -244,7 +243,8 @@ public class Player : Entity {
     private void RegisterSwordKnockback(Player player) {
         var knockback = new Vector2(
             player.Bounds.Center.X < Bounds.Center.X ? SwordKnockbackX : -SwordKnockbackX, 
-            -SwordKnockbackY);
+            -SwordKnockbackY
+        );
         if (player.Sprinting && !player._sprintHit) {
             knockback.X *= SprintHitKnockbackFactor;
             player._sprintHit = true;

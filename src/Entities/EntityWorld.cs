@@ -9,20 +9,20 @@ namespace SideBridge;
 
 public class EntityWorld : IDrawable, IUpdatable {
 
-    private readonly Bag<Entity> s_entities;
+    private readonly Bag<Entity> _entities;
     private readonly SpriteBatch _spriteBatch;
     
     public EntityWorld(GraphicsDevice graphicsDevice) {
-        s_entities = new();
+        _entities = new();
         _spriteBatch = new(graphicsDevice);
     }
 
     public void Update(GameTime gameTime) {
-        foreach (Entity entity in s_entities) {
+        foreach (Entity entity in _entities) {
             entity.Update(gameTime);
         }
-        foreach (Entity entity in s_entities) {
-            foreach (Entity oEntity in s_entities) {
+        foreach (Entity entity in _entities) {
+            foreach (Entity oEntity in _entities) {
                 if (entity == oEntity) {
                     continue;
                 }
@@ -38,18 +38,18 @@ public class EntityWorld : IDrawable, IUpdatable {
 
     public void Draw(SpriteBatch spriteBatch) {
         _spriteBatch.Begin(transformMatrix: Game.GameCamera.GetViewMatrix());
-        foreach (Entity entity in s_entities) {
+        foreach (Entity entity in _entities) {
             entity.Draw(_spriteBatch);
         }
         _spriteBatch.End();
     }
 
-    public void Add(Entity entity) => s_entities.Add(entity);
-    public void Remove(Entity entity) => s_entities.Remove(entity);
-    public bool Contains(Entity entity) => s_entities.Contains(entity);
+    public void Add(Entity entity) => _entities.Add(entity);
+    public void Remove(Entity entity) => _entities.Remove(entity);
+    public bool Contains(Entity entity) => _entities.Contains(entity);
 
     public T? FindEntity<T>(Predicate<T> testCase) {
-        foreach (Entity entity in s_entities) {
+        foreach (Entity entity in _entities) {
             if (entity is T result && testCase.Invoke(result)) {
                 return result;
             }
