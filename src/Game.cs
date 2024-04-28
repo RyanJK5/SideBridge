@@ -54,6 +54,7 @@ internal class Game {
         GraphicsDevice graphicsDevice = _gameGraphics.GraphicsDevice;
 
         _entityWorld = new EntityWorld(graphicsDevice);
+        Arrow.LoadArrowTexture(loader);
 
         _soundEffectHandler = new SoundEffectHandler(loader);
         

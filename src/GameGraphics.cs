@@ -44,7 +44,6 @@ public class GameGraphics : Microsoft.Xna.Framework.Game {
         _spriteBatch = new(GraphicsDevice);
         
         Font = Content.Load<SpriteFont>("font");
-        Arrow.ArrowTexture = Content.Load<Texture2D>("img/arrow");
     }
 
     protected override void Update(GameTime gameTime) {

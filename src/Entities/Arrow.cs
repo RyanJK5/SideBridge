@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
 using System;
@@ -6,12 +7,12 @@ using System;
 namespace SideBridge;
 
 public class Arrow : Entity {
-    private static Texture2D _arrowTexture;
+    public static Texture2D ArrowTexture { get; private set; }
 
     public readonly float Damage;
     public readonly Team PlayerTeam;
 
-    public static Texture2D ArrowTexture { get => _arrowTexture; set => _arrowTexture = value; }
+    public static void LoadArrowTexture(ContentManager loader) => ArrowTexture = loader.Load<Texture2D>("img/arrow");
 
     public Arrow(RectangleF bounds, float damage, Team playerTeam) : base(ArrowTexture, bounds) {
         Bounds = bounds;
@@ -21,10 +22,7 @@ public class Arrow : Entity {
 
     public override void OnCollision(Entity other) { }
 
-    public override void OnTileCollision(Tile tile) {
-        Velocity = Vector2.Zero;
-        Game.EntityWorld.Remove(this);
-    }
+    public override void OnTileCollision(Tile tile) => Game.EntityWorld.Remove(this);
 
     public override void Update(GameTime gameTime) {
         Bounds.Position += Velocity;
@@ -45,7 +43,6 @@ public class Arrow : Entity {
             SpriteEffects.None,
             0f
         );
-        // spriteBatch.DrawRectangle(Bounds, Color.Red);
     }
 
 }
