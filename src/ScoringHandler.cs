@@ -53,7 +53,7 @@ public class ScoringHandler : IUpdatable {
     public void StartGame() {
         Game.TiledWorld.LoadMap(Game.GameGraphics.Content, WorldType.Default);
         NewRound();
-        Settings.LobbyMode = false;
+        Settings.GameState = GameState.InGame;
     }
 
     public void StartGameIn(float seconds) => _timeToGame = seconds;

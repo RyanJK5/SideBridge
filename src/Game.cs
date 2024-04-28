@@ -62,7 +62,7 @@ internal class Game {
         var tileSet = new TileSet(loader.Load<Texture2D>("img/blocks"), 3, 3);
         _tiledWorld = new TiledWorld(_gameGraphics.GraphicsDevice, tileSet, 61, 27);
         _tiledWorld.LoadMap(loader, WorldType.Lobby);
-        Settings.LobbyMode = true;
+        Settings.GameState = GameState.Lobby;
 
         Player[] players = CreatePlayers(loader);
         CreateUI(loader, players);

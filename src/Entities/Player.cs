@@ -187,7 +187,7 @@ public class Player : Entity {
     public override void Draw(SpriteBatch spriteBatch) {
         base.Draw(spriteBatch);
         Vector2 mousePos = Game.GameCamera.ScreenToWorld(Mouse.GetState().Position.ToVector2());
-        if (ActiveSlot == Hotbar.SwordSlot && !Settings.LobbyMode) {
+        if (ActiveSlot == Hotbar.SwordSlot && Settings.GameState == GameState.InGame) {
             Vector2 center = Bounds.Center;
             Vector2 vecLine = mousePos - center;
             vecLine.Normalize();
@@ -299,7 +299,7 @@ public class Player : Entity {
             _appleCharge = 0;
         }
 
-        if (Settings.LobbyMode) {
+        if (Settings.GameState != GameState.InGame) {
             return;
         }
 
@@ -331,7 +331,7 @@ public class Player : Entity {
     }
 
     private void TryUseSword(object sender, MouseEventArgs args) {
-        if (ActiveSlot != Hotbar.SwordSlot || Settings.LobbyMode) {
+        if (ActiveSlot != Hotbar.SwordSlot || Settings.GameState != GameState.InGame) {
             return;
         }
         Vector2 mousePos = Game.GameCamera.ScreenToWorld(args.Position.ToVector2());

@@ -8,7 +8,7 @@ public class UIHandler : IDrawable, IUpdatable {
     
     private readonly Bag<UI> _allUI;
 
-    private static bool CanDrawUI(UI ui) => !ui.InGameUI || !Settings.LobbyMode;
+    private static bool CanDrawUI(UI ui) => Settings.GameState == ui.StateType;
 
     public UIHandler(params UI[] allUI) {
         _allUI = new Bag<UI>();

@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
 using MonoGame.Extended.Tiled;
 using Microsoft.Xna.Framework.Audio;
+using System.Collections.Generic;
 
 namespace SideBridge;
 
@@ -13,7 +14,6 @@ public class TiledWorld : IDrawable, IUpdatable {
 
     public const int HeightLimit = 8;
     public const int IslandWidths = 8;
-
 
     private readonly TileSet _tileSet;
     private readonly SpriteBatch _spriteBatch;
@@ -117,7 +117,7 @@ public class TiledWorld : IDrawable, IUpdatable {
     }
 
     public Tile[] FindTiles(System.Predicate<Tile> testCase) {
-        System.Collections.Generic.List<Tile> result = new();
+        var result = new List<Tile>();
         foreach (var tile in _tileGrid) {
             if (testCase.Invoke(tile)) {
                 result.Add(tile);

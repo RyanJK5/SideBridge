@@ -18,7 +18,9 @@ public class Hotbar : UI {
 
     private readonly Player _player;
 
-    public Hotbar(Player player, Texture2D texture, Vector2 drawPos) : base(texture, drawPos, true) => _player = player;
+    public Hotbar(Player player, Texture2D texture, Vector2 drawPos) : 
+        base(texture, drawPos, GameState.InGame) => _player = player
+    ;
 
     public override void Draw(SpriteBatch spriteBatch) {
         spriteBatch.Draw(

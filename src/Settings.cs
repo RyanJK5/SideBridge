@@ -29,8 +29,7 @@ public static class Settings {
         Keys.D8
     };
 
-    public static bool LobbyMode { get; set; }
-    public static bool HotbarActive => LobbyMode;
+    public static GameState GameState { get; set; }
 
     public static float MasterVolume { 
         get => SoundEffect.MasterVolume; 
