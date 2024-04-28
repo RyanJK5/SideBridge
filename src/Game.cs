@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Threading;
+using System.Timers;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
@@ -36,12 +38,13 @@ internal class Game {
     ;
 
     public static IUpdatable[] Updatables() =>
-        new IUpdatable[] { TiledWorld, EntityWorld, GameCamera, ParticleEffectHandler, UIHandler }
+        new IUpdatable[] { TiledWorld, EntityWorld, GameCamera, ScoringHandler, ParticleEffectHandler, UIHandler }
     ;
 
     public static void Start() {
         s_main = new Game();
         s_main.InitializeFields();
+        ScoringHandler.StartGameIn(5f);
         GameGraphics.Run();
     }
 

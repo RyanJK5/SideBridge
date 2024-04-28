@@ -1,12 +1,18 @@
 using System;
+using Microsoft.Xna.Framework;
+using MonoGame.Extended;
 
 namespace SideBridge;
 
-public class ScoringHandler {
+public class ScoringHandler : IUpdatable {
 
     private readonly ScoreBar _scoreBar;
     private readonly Player _player1;
     private readonly Player _player2;
+
+    private const float TimerInactive = -1f;
+
+    private float _timeToGame = TimerInactive;
 
     public ScoringHandler(ScoreBar scoreBar, Player player1, Player player2) {
         _scoreBar = scoreBar;
@@ -41,6 +47,14 @@ public class ScoringHandler {
         }
         return false;
     }
+
+    public void StartGame() {
+        Game.TiledWorld.LoadMap(Game.GameGraphics.Content, WorldType.Default);
+        NewRound();
+        Settings.LobbyMode = false;
+    }
+
+    public void StartGameIn(float seconds) => _timeToGame = seconds;
 
     public void EndGame(Team team) {
         Game.SoundEffectHandler.PlaySound(SoundEffectID.Win);
@@ -125,4 +139,24 @@ public class ScoringHandler {
         }
     }
 
+    public void Update(GameTime gameTime) {
+        if (_timeToGame == TimerInactive) {
+            return;
+        }
+
+        if (_timeToGame == 0) {
+            _timeToGame = TimerInactive;
+            StartGame();
+            return;
+        }
+        
+        _timeToGame -= gameTime.GetElapsedSeconds();
+        if (_timeToGame % 1 > ((_timeToGame + gameTime.GetElapsedSeconds()) % 1)) {
+            Game.SoundEffectHandler.PlaySound(SoundEffectID.Tick);   
+        }
+        
+        if (_timeToGame < 0) {
+            _timeToGame = 0;
+        }
+    }
 }
