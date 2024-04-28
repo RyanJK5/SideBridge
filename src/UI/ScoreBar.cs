@@ -12,7 +12,6 @@ public class ScoreBar : UI, IUpdatable {
     
     private const int GameLength = 60 * 5;
     private const int WarningTick = 61;
-    private const int PauseLength = 5;
 
     public int RedScore { 
         get => _redScore; 
@@ -69,7 +68,7 @@ public class ScoreBar : UI, IUpdatable {
         _elapsedTime = GameLength;
     }
 
-    public void Pause() => _timeSincePause = PauseLength;
+    public void Pause() => _timeSincePause = ScoringHandler.PauseLength;
 
     public void Update(GameTime gameTime) {
         if (RedWon || BlueWon) {

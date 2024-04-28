@@ -44,7 +44,7 @@ internal class Game {
     public static void Start() {
         s_main = new Game();
         s_main.InitializeFields();
-        ScoringHandler.StartGameIn(5f);
+        ScoringHandler.StartGameIn(ScoringHandler.PauseLength);
         GameGraphics.Run();
     }
 

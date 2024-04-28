@@ -6,6 +6,8 @@ namespace SideBridge;
 
 public class ScoringHandler : IUpdatable {
 
+    public const int PauseLength = 5;
+
     private readonly ScoreBar _scoreBar;
     private readonly Player _player1;
     private readonly Player _player2;
