@@ -22,7 +22,12 @@ public class Arrow : Entity {
 
     public override void OnCollision(Entity other) { }
 
-    public override void OnTileCollision(Tile tile) => Game.EntityWorld.Remove(this);
+    public override void OnTileCollision(Tile tile) {
+        if (TileTypes.Solid(tile.Type) || 
+            (TileTypes.SemiSolid(tile.Type) && Bounds.Bottom - Velocity.Y / Game.NativeFPS <= tile.Bounds.Top)) {
+            Game.EntityWorld.Remove(this);
+        }
+    } 
 
     public override void Update(GameTime gameTime) {
         Bounds.Position += Velocity * gameTime.GetElapsedSeconds();
