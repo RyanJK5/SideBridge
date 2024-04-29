@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Graphics;
+using System.Linq;
 
 namespace SideBridge;
 
@@ -50,6 +51,7 @@ public class Player : Entity {
     private const float SprintingSoundDelay = 0.3f;
     private const float WalkingSoundDelay = 0.45f;
 
+    private bool _dropping;
     private bool _mouseDown;
     private bool _knockedBack;
 
@@ -71,11 +73,10 @@ public class Player : Entity {
     private readonly SoundEffectInstance _eatSound;
     private readonly SoundEffectInstance _voidSound;
 
-    public bool OnGround => 
-        Bounds.Bottom < Game.TiledWorld.HeightInPixels && 
-        Bounds.Bottom > 0 &&
-        (TileTypes.Solid(Game.TiledWorld.GetTile(Bounds.X, Bounds.Bottom).Type) ||
-        TileTypes.Solid(Game.TiledWorld.GetTile(Bounds.Right - 1, Bounds.Bottom).Type));
+    public bool OnGround => GetGroundTiles()
+        .Any(t => (TileTypes.Solid(t.Type) || (TileTypes.SemiSolid(t.Type) && !_dropping)) && 
+        Bounds.Bottom - Velocity.Y / Game.NativeFPS <= t.Bounds.Top)
+    ;
 
     public bool Sprinting { get => Velocity.X != 0 && _sprintKeyDown; }
     private bool _sprintKeyDown;
@@ -106,24 +107,7 @@ public class Player : Entity {
         };
 
         var keyListener = new KeyboardListener();
-        keyListener.KeyPressed += (sender, args) => {
-            if (args.Key == _keyInputs[(int) PlayerAction.Sprint]) {
-                _sprintKeyDown = !Sprinting;
-                if (!_sprintKeyDown) {
-                    _sprintHit = false;
-                }
-            }
-            else {
-                PlayerAction[] hotbarSlots = Enum.GetValues<PlayerAction>()[
-                    (int) PlayerAction.Hotbar1..((int) PlayerAction.Hotbar4 + 1)
-                ];
-                for (var i = 0; i < hotbarSlots.Length; i++) {
-                    if (_keyInputs[(int) hotbarSlots[i]] == args.Key) {
-                        ActiveSlot = i;
-                    }
-                }
-            }
-        };
+        keyListener.KeyPressed += ProcessKeyInput;
         _sprintKeyDown = true;
 
         Game.GameGraphics.AddListeners(mouseListener, keyListener);
@@ -139,6 +123,39 @@ public class Player : Entity {
 
         TimeSinceBow = BowCooldown;
     }
+
+    private Tile[] GetGroundTiles() => new Tile[] { 
+        Game.TiledWorld.GetTile(Bounds.X, Bounds.Bottom), 
+        Game.TiledWorld.GetTile(Bounds.Right - 1, Bounds.Bottom) 
+    };
+
+    private void ProcessKeyInput(object sender, KeyboardEventArgs args) {
+        if (args.Key == _keyInputs[(int) PlayerAction.Sprint]) {
+            ToggleSprint();
+            return;
+        }
+
+        SelectHotbarSlot(args.Key);
+    }
+
+    private void ToggleSprint() {
+        _sprintKeyDown = !Sprinting;
+        if (!_sprintKeyDown) {
+            _sprintHit = false;
+        }
+    }
+
+    private void SelectHotbarSlot(Keys key) {
+        PlayerAction[] hotbarSlots = Enum.GetValues<PlayerAction>()[
+            (int) PlayerAction.Hotbar1..((int) PlayerAction.Hotbar4 + 1)
+        ];
+        for (var i = 0; i < hotbarSlots.Length; i++) {
+            if (_keyInputs[(int) hotbarSlots[i]] == key) {
+                ActiveSlot = i;
+            }
+        }
+    }
+
 
     public override void OnCollision(Entity other) {
         if (other is Arrow arrow && arrow.PlayerTeam != Team && Game.EntityWorld.Contains(arrow)) {
@@ -157,6 +174,10 @@ public class Player : Entity {
                 Game.SoundEffectHandler.PlaySound(SoundEffectID.Teleport);
                 OnDeath();
             }
+            return;
+        }
+
+        if (TileTypes.SemiSolid(tile.Type) && (!GetGroundTiles().Contains(tile) || !OnGround)) {
             return;
         }
         
@@ -273,6 +294,8 @@ public class Player : Entity {
         SetHorizontalVelocity();
         UpdatePosition(gameTime);
         ResetPositions();
+
+        _dropping = Keyboard.GetState().IsKeyDown(_keyInputs[(int) PlayerAction.Drop]);
 
         _timeSinceApple += gameTime.GetElapsedSeconds();
         _timeSinceVoid += gameTime.GetElapsedSeconds();
@@ -470,7 +493,8 @@ public class Player : Entity {
                 mousePos.Y + vec.Y > Game.TiledWorld.HeightInPixels || mousePos.Y + vec.Y < 0) {
                 continue;
             }
-            if (TileTypes.Solid(Game.TiledWorld.GetTile(mousePos.X + vec.X, mousePos.Y + vec.Y).Type)) {
+            TileType type = Game.TiledWorld.GetTile(mousePos.X + vec.X, mousePos.Y + vec.Y).Type;
+            if (TileTypes.Solid(type) || TileTypes.SemiSolid(type)) {
                 var normalBlockType = Team == Team.Red ? TileType.Red : TileType.Blue;
                 var darkBlockType = Team == Team.Red ? TileType.DarkRed : TileType.DarkBlue;
                 Game.TiledWorld.SetTileWithEffects(tileY / tileSize <= TiledWorld.HeightLimit ? darkBlockType : normalBlockType, mousePos.X, mousePos.Y);

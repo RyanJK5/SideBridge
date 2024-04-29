@@ -12,7 +12,8 @@ public enum TileType {
     DarkBlue,
     DarkRed,
     Goal,
-    Glass
+    Glass,
+    Platform
 }
 
 public static class TileTypes {
@@ -24,7 +25,9 @@ public static class TileTypes {
 
     public static bool Breakable(TileType type) => GetBreakableTypes().Contains(type);
 
-    public static bool Solid(TileType type) => type != TileType.Air && type != TileType.Goal;
+    public static bool Solid(TileType type) => type != TileType.Air && type != TileType.Goal && !SemiSolid(type);
+    
+    public static bool SemiSolid(TileType type) => type == TileType.Platform;
 
     public static TileType[] GetBreakableTypes() => 
         new TileType[] { TileType.Blue, TileType.Red, TileType.DarkBlue, TileType.DarkRed}
