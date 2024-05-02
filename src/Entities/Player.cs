@@ -51,6 +51,8 @@ public class Player : Entity {
     private const float SprintingSoundDelay = 0.3f;
     private const float WalkingSoundDelay = 0.45f;
 
+    private RectangleF _lastBounds;
+
     private bool _dropping;
     private bool _mouseDown;
     private bool _knockedBack;
@@ -75,7 +77,7 @@ public class Player : Entity {
 
     public bool OnGround => GetGroundTiles()
         .Any(t => (TileTypes.Solid(t.Type) || (TileTypes.SemiSolid(t.Type) && !_dropping)) && 
-        Bounds.Bottom - Velocity.Y / Game.NativeFPS <= t.Bounds.Top)
+        _lastBounds.Bottom <= t.Bounds.Top)
     ;
 
     public bool Sprinting { get => Velocity.X != 0 && _sprintKeyDown; }
@@ -84,8 +86,8 @@ public class Player : Entity {
 
     public readonly Team Team;
     public Vector2 SpawnPosition => Team == Team.Blue 
-        ? new(420 - Bounds.Width / 2, 180) 
-        : new(Game.TiledWorld.WidthInPixels - 420 - Bounds.Width / 2, 180);
+        ? new(420 - Bounds.Width / 2, 160) 
+        : new(Game.TiledWorld.WidthInPixels - 420 - Bounds.Width / 2, 160);
 
 
     public Player(Texture2D texture, RectangleF bounds, Team team) : base(texture, bounds) {
@@ -180,28 +182,27 @@ public class Player : Entity {
         if (TileTypes.SemiSolid(tile.Type) && (!GetGroundTiles().Contains(tile) || !OnGround)) {
             return;
         }
-        
-        var otherBounds = tile.Bounds;
-        var intersection = Bounds.Intersection(otherBounds);
 
-        if (intersection.Height > intersection.Width) {
-            if (Bounds.X < otherBounds.Position.X) {
-                Bounds.X -= intersection.Width;
-            }
-            else {
-                Bounds.X += intersection.Width;
-            }
+        var tileBounds = tile.Bounds;
+        var intersection = Bounds.Intersection(tileBounds);
+
+        if (_lastBounds.Bottom <= tileBounds.Top) {
+            Bounds.Y -= intersection.Height;
+            Velocity.Y = 0;
+        }
+        else if (_lastBounds.Top >= tileBounds.Bottom) {
+            Bounds.Y += intersection.Height;
+            Velocity.Y = 0;
+        }
+        else if (_lastBounds.Right <= tileBounds.Left) {
+            Bounds.X -= intersection.Width;
             Velocity.X = 0;
             _walkTime = 0;
         }
-        else {
-            if (Bounds.Y < otherBounds.Y) { 
-                Bounds.Y -= intersection.Height;
-            }
-            else {
-                Bounds.Y += intersection.Height;
-            }
-            Velocity.Y = 0;
+        else if (_lastBounds.Left >= tileBounds.Right) {
+            Bounds.X += intersection.Width;
+            Velocity.X = 0;
+            _walkTime = 0;
         }
     }
 
@@ -341,6 +342,7 @@ public class Player : Entity {
     }
 
     private void UpdatePosition(GameTime gameTime) {
+        _lastBounds = Bounds;
         if (!_knockedBack && (_bowCharge > 0 || _appleCharge > 0 || _voidCharge > 0)) {
             Bounds.X += Velocity.X * SlowWalkVelocityFactor * gameTime.GetElapsedSeconds();
         }

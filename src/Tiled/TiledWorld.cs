@@ -6,6 +6,8 @@ using MonoGame.Extended;
 using MonoGame.Extended.Tiled;
 using Microsoft.Xna.Framework.Audio;
 using System.Collections.Generic;
+using System;
+using System.Linq;
 
 namespace SideBridge;
 
@@ -82,20 +84,56 @@ public class TiledWorld : IDrawable, IUpdatable {
 
     public void CheckTileCollisions(Entity entity) {
         var bounds = entity.Bounds;
-        Tile[] possibleCollisions = {
+        
+        var collisions = new List<Tile>() {
             this[(int) (bounds.Left / TileSize), (int) (bounds.Top / TileSize)],
             this[(int) (bounds.Right / TileSize), (int) (bounds.Top / TileSize)],
             this[(int) (bounds.Left / TileSize), (int) (bounds.Bottom / TileSize)],
             this[(int) (bounds.Right / TileSize), (int) (bounds.Bottom / TileSize)]
-        };
-        foreach (Tile tile in possibleCollisions) {
-            if (tile.Type != TileType.Air && tile.Bounds.Intersects(bounds)) {
-                entity.OnTileCollision(tile);
-                if (tile.Type == TileType.Goal) {
-                    return;
-                }
+        }.Distinct().ToList();
+        
+
+        for (var i = 0; i < collisions.Count; i++) {
+            Tile tile = collisions[i];
+            if (tile.Type == TileType.Air || !tile.Bounds.Intersects(bounds)) {
+                collisions.Remove(tile);
+                i--;
             }
         }
+        
+        if (collisions.Count == 0) {
+            return;
+        }
+        List<Tile> solidCols = collisions.FindAll(t => TileTypes.Solid(t.Type));
+        collisions = collisions.FindAll(t => !TileTypes.Solid(t.Type));
+        collisions.AddRange(CombineTiles(solidCols));
+
+        foreach (Tile tile in collisions) {
+            entity.OnTileCollision(tile);
+        }
+    }
+
+    private static List<Tile> CombineTiles(List<Tile> tiles) {
+        if (tiles.Count == 0) {
+            return tiles;
+        }
+        RectangleF newBounds = tiles[0].Bounds;
+        for (var i = 1; i < tiles.Count; i++) {
+            RectangleF tileBounds = tiles[i].Bounds;
+            
+            if (tileBounds.X == newBounds.X) {
+                newBounds = new(newBounds.X, newBounds.Y, newBounds.Width, newBounds.Height + tileBounds.Height);
+                tiles.RemoveAt(i);
+                break;
+            }
+            if (tileBounds.Y == newBounds.Y) {
+                newBounds = new(newBounds.X, newBounds.Y, newBounds.Width + tileBounds.Width, newBounds.Height);
+                tiles.RemoveAt(i);
+                break;
+            }
+        }
+        tiles[0] = new Tile(tiles[0].Type, newBounds);
+        return tiles;
     }
 
     public Tile this[int row, int col] {
