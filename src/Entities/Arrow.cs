@@ -49,5 +49,4 @@ public class Arrow : Entity {
             0f
         );
     }
-
 }

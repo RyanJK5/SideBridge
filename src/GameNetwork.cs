@@ -6,7 +6,7 @@ namespace SideBridge;
 
 public static class GameNetwork {
 
-    private const int Port = 16320;
+    private const int Port = 80;
     private static readonly IPEndPoint EndPoint = new(IPAddress.Parse("192.168.2.72"), Port);
 
     public static async Task Start(bool hosting) {
@@ -35,4 +35,8 @@ public static class GameNetwork {
         using TcpClient client = new();
         await client.ConnectAsync(EndPoint);
     }
+
+    // public static async Task SendAction(Player player, PlayerAction action) {
+        
+    // }
 }

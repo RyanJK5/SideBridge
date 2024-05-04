@@ -22,10 +22,9 @@ public class Player : Entity {
 
     private const float SwordKnockbackX = 5f * Game.NativeFPS;
     private const float SwordKnockbackY = 8f * Game.NativeFPS;
-    
-    private const float ArrowKnockbackXFactor = 0.2f;
     private const float ArrowKnockbackY = 2f * Game.NativeFPS;
     
+    private const float ArrowKnockbackXFactor = 0.2f;
     private const float SprintHitKnockbackFactor = 1.5f;
     private const float AirKnockbackFactor = 2f;
 
@@ -42,46 +41,58 @@ public class Player : Entity {
     private const float ArrowDamageFactor = 4.5f;
     private const float ArrowVelocityFactor = 45f * Game.NativeFPS;
 
-    private const float AppleEatTime = 1.5f;
+    private const float AppleChargeTime = 1.5f;
     private const float AppleCooldown = 0.2f;
     
-    private const float VoidTime = 1f;
+    private const float VoidChargeTime = 1f;
     private const float VoidCooldown = 0.2f;
 
     private const float SprintingSoundDelay = 0.3f;
     private const float WalkingSoundDelay = 0.45f;
 
     private RectangleF _lastBounds;
-
-    private bool _dropping;
     private bool _mouseDown;
     private bool _knockedBack;
 
-    private float _bowCharge;
-    public float TimeSinceBow {get; private set; }
-    
-    private float _appleCharge;
-    private float _timeSinceApple;
-    
-    private float _voidCharge;
-    private float _timeSinceVoid;
-
     public float Health { get; private set; }
-    public int ActiveSlot { get; private set; }
+    
+    private int _activeSlot;
+    public int ActiveSlot { 
+        get => _activeSlot; 
+
+        private set {
+            _activeSlot = value;
+            if (ActiveSlot != Hotbar.BowSlot) {
+                _bow.Charge = 0;
+                _mouseDown = false;
+            }
+            if (ActiveSlot != Hotbar.AppleSlot) {
+                _apple.Charge = 0;
+                _eatSound.Stop();
+            }
+        } 
+    }
 
     private readonly Keys[] _keyInputs;
+    private readonly bool[] _activeActions;
+
+    private readonly ChargedValue _apple;
+    private readonly ChargedValue _bow;
+    private readonly ChargedValue _void;
+
+    private ChargedValue[] ChargedValues => new ChargedValue[] { _apple, _bow, _void };
+    public float TimeSinceBow => _bow.TimeSince;
 
     private float _walkTime;
     private readonly SoundEffectInstance _eatSound;
     private readonly SoundEffectInstance _voidSound;
 
     public bool OnGround => GetGroundTiles()
-        .Any(t => (TileTypes.Solid(t.Type) || (TileTypes.SemiSolid(t.Type) && !_dropping)) && 
+        .Any(t => (TileTypes.Solid(t.Type) || (TileTypes.SemiSolid(t.Type) && !_activeActions[(int) PlayerAction.Drop])) && 
         _lastBounds.Bottom <= t.Bounds.Top)
     ;
 
-    public bool Sprinting { get => Velocity.X != 0 && _sprintKeyDown; }
-    private bool _sprintKeyDown;
+    public bool Sprinting { get => Velocity.X != 0 && _activeActions[(int) PlayerAction.Sprint]; }
     private bool _sprintHit;
 
     public readonly Team Team;
@@ -89,30 +100,13 @@ public class Player : Entity {
         ? new(420 - Bounds.Width / 2, 160) 
         : new(Game.TiledWorld.WidthInPixels - 420 - Bounds.Width / 2, 160);
 
-
     public Player(Texture2D texture, RectangleF bounds, Team team) : base(texture, bounds) {
         _keyInputs = team == Team.Blue ? Settings.DefaultPlayer1KeyBinds : Settings.DefaultPlayer2KeyBinds;
-
-        var mouseListener = new MouseListener();
-        mouseListener.MouseDown += TryUseSword;
-        mouseListener.MouseWheelMoved += (sender, args) => {
-            if (args.ScrollWheelDelta > 0) {
-                ActiveSlot++;
-                ActiveSlot %= Hotbar.SlotCount;
-            }
-            else if (args.ScrollWheelDelta < 0) {
-                ActiveSlot--;
-                if (ActiveSlot < 0) {
-                    ActiveSlot = Hotbar.SlotCount - 1;
-                }
-            }
-        };
-
-        var keyListener = new KeyboardListener();
-        keyListener.KeyPressed += ProcessKeyInput;
-        _sprintKeyDown = true;
-
-        Game.GameGraphics.AddListeners(mouseListener, keyListener);
+        _activeActions = new bool[Enum.GetValues<PlayerAction>().Length];
+        
+        _bow = new ChargedValue(BowChargeTime, BowCooldown);
+        _apple = new ChargedValue(AppleChargeTime, AppleCooldown);
+        _void = new ChargedValue(VoidChargeTime, VoidCooldown);
 
         Health = MaxRedHealth;
         Team = team;
@@ -123,41 +117,74 @@ public class Player : Entity {
         _voidSound = Game.SoundEffectHandler.CreateInstance(SoundEffectID.Void);
         _voidSound.Volume = 0.5f;
 
-        TimeSinceBow = BowCooldown;
+        CreateListeners();
     }
 
-    private Tile[] GetGroundTiles() => new Tile[] { 
-        Game.TiledWorld.GetTile(Bounds.X, Bounds.Bottom), 
-        Game.TiledWorld.GetTile(Bounds.Right - 1, Bounds.Bottom) 
-    };
+    public override void Draw(SpriteBatch spriteBatch) {
+        base.Draw(spriteBatch);
+        Vector2 mousePos = Game.GameCamera.ScreenToWorld(Mouse.GetState().Position.ToVector2());
+        if (ActiveSlot == Hotbar.SwordSlot && Settings.GameState == GameState.InGame) {
+            Vector2 center = Bounds.Center;
+            Vector2 vecLine = mousePos - center;
+            vecLine.Normalize();
+            vecLine *= TileReach * Game.TiledWorld.TileSize;
+            
+            spriteBatch.DrawLine(center.X, center.Y, center.X + vecLine.X, center.Y + vecLine.Y, Color.GhostWhite * 0.5f, 20f);
+        }
 
-    private void ProcessKeyInput(object sender, KeyboardEventArgs args) {
-        if (args.Key == _keyInputs[(int) PlayerAction.Sprint]) {
-            ToggleSprint();
+        if (_apple.Charge > 0) {
+            var barBounds = new RectangleF(Bounds.X - 2, Bounds.Y - 10, Bounds.Width + 4, 6);
+            spriteBatch.FillRectangle(barBounds, Color.DarkRed);
+            spriteBatch.DrawPercentageBar(barBounds, _apple.Charge / AppleChargeTime);
+        }
+        if (_void.Charge > 0) {
+            var barBounds = new RectangleF(Bounds.X - 2, Bounds.Y - (_apple.Charge > 0 ? 20 : 10), Bounds.Width + 4, 6);
+            spriteBatch.FillRectangle(barBounds, Color.Purple);
+            spriteBatch.DrawPercentageBar(barBounds, _void.Charge / VoidChargeTime, false);
+        }
+        if (_bow.Charge == 0) {
             return;
         }
 
-        SelectHotbarSlot(args.Key);
-    }
-
-    private void ToggleSprint() {
-        _sprintKeyDown = !Sprinting;
-        if (!_sprintKeyDown) {
-            _sprintHit = false;
+        Vector2 vec = CalculateArrowLaunchVelocity(Bounds.Center);
+        Vector2 pos = Bounds.Center;
+        for (int i = 0; i < 20; i++) {
+            pos.X += vec.X / Game.NativeFPS;
+            pos.Y += vec.Y / Game.NativeFPS;
+            vec.Y += Game.Gravity;
+            spriteBatch.DrawCircle(pos, 5, 100, Color.White, 10f);
         }
     }
 
-    private void SelectHotbarSlot(Keys key) {
-        PlayerAction[] hotbarSlots = Enum.GetValues<PlayerAction>()[
-            (int) PlayerAction.Hotbar1..((int) PlayerAction.Hotbar4 + 1)
-        ];
-        for (var i = 0; i < hotbarSlots.Length; i++) {
-            if (_keyInputs[(int) hotbarSlots[i]] == key) {
-                ActiveSlot = i;
-            }
-        }
-    }
+    public override void Update(GameTime gameTime) {
+        SetVerticalVelocity();
+        SetHorizontalVelocity();
+        UpdatePosition(gameTime);
+        ResetPositions();
 
+        foreach (ChargedValue value in ChargedValues) {
+            value.Increment(gameTime.GetElapsedSeconds(), false);
+        }
+
+        PlayWalkSounds(gameTime);
+
+        if (Settings.GameState != GameState.InGame) {
+            return;
+        }
+
+        switch (ActiveSlot) {
+            case Hotbar.BowSlot:
+                TryShootBow(gameTime);
+                break;
+            case Hotbar.BlockSlot:
+                TryModifyBlock();
+                break;
+            case Hotbar.AppleSlot:
+                TryEatApple(gameTime);
+                break;
+        }
+        TryVoid(gameTime);
+    }
 
     public override void OnCollision(Entity other) {
         if (other is Arrow arrow && arrow.PlayerTeam != Team && Game.EntityWorld.Contains(arrow)) {
@@ -206,49 +233,21 @@ public class Player : Entity {
         }
     }
 
-    public override void Draw(SpriteBatch spriteBatch) {
-        base.Draw(spriteBatch);
-        Vector2 mousePos = Game.GameCamera.ScreenToWorld(Mouse.GetState().Position.ToVector2());
-        if (ActiveSlot == Hotbar.SwordSlot && Settings.GameState == GameState.InGame) {
-            Vector2 center = Bounds.Center;
-            Vector2 vecLine = mousePos - center;
-            vecLine.Normalize();
-            vecLine *= TileReach * Game.TiledWorld.TileSize;
-            
-            spriteBatch.DrawLine(center.X, center.Y, center.X + vecLine.X, center.Y + vecLine.Y, Color.GhostWhite * 0.5f, 20f);
-        }
-
-        if (_appleCharge > 0) {
-            var barBounds = new RectangleF(Bounds.X - 2, Bounds.Y - 10, Bounds.Width + 4, 6);
-            spriteBatch.FillRectangle(barBounds, Color.DarkRed);
-            spriteBatch.DrawPercentageBar(barBounds, _appleCharge / AppleEatTime);
-        }
-        if (_voidCharge > 0) {
-            var barBounds = new RectangleF(Bounds.X - 2, Bounds.Y - (_appleCharge > 0 ? 20 : 10), Bounds.Width + 4, 6);
-            spriteBatch.FillRectangle(barBounds, Color.Purple);
-            spriteBatch.DrawPercentageBar(barBounds, _voidCharge / VoidTime, false);
-        }
-
-        if (_bowCharge == 0) {
-            return;
-        }
-
-        var playerPos = Bounds.Center;
-        var vec = new Vector2(mousePos.X, mousePos.Y) - (Vector2) Bounds.Center;
-        vec.Normalize();
-        vec *= _bowCharge / BowChargeTime * ArrowVelocityFactor;
-
-        var pos = new Vector2(playerPos.X, playerPos.Y);
-        for (int i = 0; i < 20; i++) {
-            pos.X += vec.X / Game.NativeFPS;
-            pos.Y += vec.Y / Game.NativeFPS;
-            vec.Y += Game.Gravity;
-            spriteBatch.DrawCircle(pos, 5, 100, Color.White, 10f);
-        }
+    public void OnDeath() {
+        Health = MaxRedHealth;
+        
+        Velocity = Vector2.Zero;
+        Bounds.Position = SpawnPosition;
+        
+        _eatSound.Stop();
+        
+        _bow.Reset();
+        _apple.Restart();
     }
 
     public void RegisterDamage(float dmg) {
         Health -= dmg;
+        _activeActions[(int) PlayerAction.Sprint] = false;
         if (Health <= 0) {
             OnDeath();
             Game.SoundEffectHandler.PlaySound(SoundEffectID.Kill);
@@ -258,7 +257,6 @@ public class Player : Entity {
     private void RegisterArrowKnockback(Arrow arrow) {
         Velocity = arrow.Velocity * ArrowKnockbackXFactor;
         Velocity.Y = -ArrowKnockbackY;
-        _sprintKeyDown = false;
         _knockedBack = true;
     }
 
@@ -278,72 +276,9 @@ public class Player : Entity {
         _knockedBack = true;
     }
 
-    public void OnDeath() {
-        Health = MaxRedHealth;
-        Velocity = Vector2.Zero;
-        Bounds.Position = SpawnPosition;
-        _sprintKeyDown = true;
-        TimeSinceBow = BowCooldown;
-        _bowCharge = 0;
-        _appleCharge = 0;
-        _timeSinceApple = 0;
-        _eatSound.Stop();
-    }
-
-    public override void Update(GameTime gameTime) {
-        SetVerticalVelocity();
-        SetHorizontalVelocity();
-        UpdatePosition(gameTime);
-        ResetPositions();
-
-        _dropping = Keyboard.GetState().IsKeyDown(_keyInputs[(int) PlayerAction.Drop]);
-
-        _timeSinceApple += gameTime.GetElapsedSeconds();
-        _timeSinceVoid += gameTime.GetElapsedSeconds();
-        if (OnGround && Velocity.X != 0) {
-            _walkTime += gameTime.GetElapsedSeconds();
-            if (_walkTime >= (Sprinting ? SprintingSoundDelay : WalkingSoundDelay)) { 
-                _walkTime = 0;
-                SoundEffectInstance walkSound = Game.SoundEffectHandler.CreateInstance(SoundEffects.GetRandomWalkSound());
-                walkSound.Volume = 0.15f;
-                walkSound.Play();
-            }
-        }
-        else{
-            _walkTime = SprintingSoundDelay;
-        }
-        if (TimeSinceBow < BowCooldown) {
-            TimeSinceBow += gameTime.GetElapsedSeconds();
-        }
-        if (ActiveSlot != Hotbar.BowSlot && _bowCharge > 0) {
-            _bowCharge = 0;
-            _mouseDown = false;
-        }
-        if (ActiveSlot != Hotbar.AppleSlot && _appleCharge > 0) {
-            _appleCharge = 0;
-        }
-
-        if (Settings.GameState != GameState.InGame) {
-            return;
-        }
-
-        switch (ActiveSlot) {
-            case Hotbar.BowSlot:
-                TryShootBow(gameTime);
-                break;
-            case Hotbar.BlockSlot:
-                TryModifyBlock();
-                break;
-            case Hotbar.AppleSlot:
-                TryEatApple(gameTime);
-                break;
-        }
-        TryVoid(gameTime);
-    }
-
     private void UpdatePosition(GameTime gameTime) {
         _lastBounds = Bounds;
-        if (!_knockedBack && (_bowCharge > 0 || _appleCharge > 0 || _voidCharge > 0)) {
+        if (!_knockedBack && ChargedValues.Any(val => val.Charge > 0)) {
             Bounds.X += Velocity.X * SlowWalkVelocityFactor * gameTime.GetElapsedSeconds();
         }
         else if (!_knockedBack && Sprinting) {
@@ -355,14 +290,12 @@ public class Player : Entity {
         Bounds.Y += Velocity.Y * gameTime.GetElapsedSeconds();
     }
 
-    private void TryUseSword(object sender, MouseEventArgs args) {
+    private void TryUseSword() {
         if (ActiveSlot != Hotbar.SwordSlot || Settings.GameState != GameState.InGame) {
             return;
         }
-        Vector2 mousePos = Game.GameCamera.ScreenToWorld(args.Position.ToVector2());
-        Vector2 vecLine = mousePos - (Vector2) Bounds.Center;
-        vecLine.Normalize();
-        vecLine *= TileReach * Game.TiledWorld.TileSize;
+        Vector2 mousePos = Game.GameCamera.ScreenToWorld(Mouse.GetState().Position.ToVector2());
+        Vector2 vecLine = (mousePos - (Vector2) Bounds.Center).NormalizedCopy() * (TileReach * Game.TiledWorld.TileSize);
 
         var player = Game.EntityWorld.FindEntity<Player>(entity => entity != this && findIntersection(entity.Bounds).intersects);
         if (player != null) {
@@ -386,39 +319,17 @@ public class Player : Entity {
     }
 
     private void TryShootBow(GameTime gameTime) {
-        if (TimeSinceBow < BowCooldown) {
+        if (_bow.OnCooldown) {
             return;
         }
         var mouseState = Mouse.GetState();
         if (mouseState.LeftButton == ButtonState.Pressed) {
             _mouseDown = true;
-            _bowCharge += gameTime.GetElapsedSeconds();
-            if (_bowCharge > BowChargeTime) {
-                _bowCharge = BowChargeTime;
-            }
+            _bow.Increment(gameTime.GetElapsedSeconds(), true);
         }
         if (_mouseDown && mouseState.LeftButton == ButtonState.Released) {
-            var arrowTexture = Arrow.ArrowTexture;
-            Vector2 spawnPos = Bounds.Center - new Vector2(arrowTexture.Width / 2, arrowTexture.Height / 2);
-            
-            var arrow = new Arrow(
-                new(spawnPos.X, spawnPos.Y, arrowTexture.Width, 24), 
-                _bowCharge / BowChargeTime * ArrowDamageFactor,
-                Team
-            );
-            Game.SoundEffectHandler.PlaySound(SoundEffects.GetRandomBowSound());
-
-            
-            var mousePos = Game.GameCamera.ScreenToWorld(mouseState.Position.ToVector2());
-            var vec = new Vector2(mousePos.X, mousePos.Y) - spawnPos;
-            vec.Normalize();
-            vec *= _bowCharge / BowChargeTime * ArrowVelocityFactor;
-            arrow.Velocity = vec;
-            Game.EntityWorld.Add(arrow);
-
-            _mouseDown = false;
-            _bowCharge = 0;
-            TimeSinceBow = 0;
+            CreateArrow();
+            _bow.Restart();
         }
     }
 
@@ -443,38 +354,82 @@ public class Player : Entity {
     
     private void TryEatApple(GameTime gameTime) {
         var mouseState = Mouse.GetState();
-        if (_timeSinceApple > AppleCooldown && mouseState.LeftButton == ButtonState.Pressed) {
-            if (_appleCharge == 0) {
-                _eatSound.Play();
-            }
-            _appleCharge += gameTime.GetElapsedSeconds();
-            if (_appleCharge >= AppleEatTime) {
-                _appleCharge = 0;
-                _timeSinceApple = 0;
-                Health = 24;
-            }
+        if (_apple.OnCooldown || mouseState.LeftButton != ButtonState.Pressed) {
+            _eatSound.Stop();
+            _apple.Charge = 0;
+            return;
         }
-        else {
-            _eatSound?.Stop();
-            _appleCharge = 0;
+
+        if (_apple.Charge == 0) {
+            _eatSound.Play();
+        }
+        if (_apple.Increment(gameTime.GetElapsedSeconds(), true)) {
+            _apple.Restart();
+            Health = 24;
         }
     }
 
     private void TryVoid(GameTime gameTime) {
-        if (_timeSinceVoid >= VoidCooldown && Keyboard.GetState().IsKeyDown(_keyInputs[(int) PlayerAction.Void])) {
-            if (_voidCharge == 0) {
-                _voidSound.Play();
-            }
-            _voidCharge += gameTime.GetElapsedSeconds();
-            if (_voidCharge >= VoidTime) {
-                _voidCharge = 0;
-                _timeSinceVoid = 0;
-                OnDeath();
+        if (_void.OnCooldown || !_activeActions[(int) PlayerAction.Void]) {
+            _voidSound.Stop();
+            _void.Charge = 0;
+            return;
+        }
+
+        if (_void.Charge == 0) {
+            _voidSound.Play();
+        }
+        if (_void.Increment(gameTime.GetElapsedSeconds(), true)) {
+            _void.Restart();
+            OnDeath();
+        }
+    }
+
+    private void TrySelectHotbarSlot(PlayerAction action) {
+        int newSlot = Array.IndexOf(Enum.GetValues<PlayerAction>()[
+            (int) PlayerAction.Hotbar1..((int) PlayerAction.Hotbar4 + 1)
+        ], action);
+        if (newSlot >= 0) {
+            ActiveSlot = newSlot;
+        }
+    }
+
+    private void CreateArrow() {
+        var arrowTexture = Arrow.ArrowTexture;
+        Vector2 spawnPos = Bounds.Center - new Vector2(arrowTexture.Width / 2, arrowTexture.Height / 2);
+        
+        var arrow = new Arrow(
+            new(spawnPos.X, spawnPos.Y, arrowTexture.Width, 24), 
+            _bow.Charge / BowChargeTime * ArrowDamageFactor,
+            Team
+        );
+        Game.SoundEffectHandler.PlaySound(SoundEffects.GetRandomBowSound());
+
+        
+        arrow.Velocity = CalculateArrowLaunchVelocity(spawnPos);
+        Game.EntityWorld.Add(arrow);
+
+        _mouseDown = false;
+    }
+
+    private Vector2 CalculateArrowLaunchVelocity(Vector2 spawnPos) {
+        Vector2 target = Game.GameCamera.ScreenToWorld(Mouse.GetState().Position.ToVector2());
+        return (new Vector2(target.X, target.Y) - spawnPos).NormalizedCopy() * 
+            (_bow.Charge / BowChargeTime * ArrowVelocityFactor);
+    }
+
+    private void PlayWalkSounds(GameTime gameTime) {
+        if (OnGround && Velocity.X != 0) {
+            _walkTime += gameTime.GetElapsedSeconds();
+            if (_walkTime >= (Sprinting ? SprintingSoundDelay : WalkingSoundDelay)) { 
+                _walkTime = 0;
+                SoundEffectInstance walkSound = Game.SoundEffectHandler.CreateInstance(SoundEffects.GetRandomWalkSound());
+                walkSound.Volume = 0.15f;
+                walkSound.Play();
             }
         }
         else {
-            _voidSound.Stop();
-            _voidCharge = 0;
+            _walkTime = SprintingSoundDelay;
         }
     }
 
@@ -505,9 +460,14 @@ public class Player : Entity {
         }
     }
 
+    private Tile[] GetGroundTiles() => new Tile[] { 
+        Game.TiledWorld.GetTile(Bounds.X, Bounds.Bottom), 
+        Game.TiledWorld.GetTile(Bounds.Right - 1, Bounds.Bottom) 
+    };
+
     private void SetHorizontalVelocity() {
-        bool leftDown = Keyboard.GetState().IsKeyDown(_keyInputs[(int) PlayerAction.Left]);
-        bool rightDown = Keyboard.GetState().IsKeyDown(_keyInputs[(int) PlayerAction.Right]);
+        bool leftDown = _activeActions[(int) PlayerAction.Left];
+        bool rightDown = _activeActions[(int) PlayerAction.Right];
         
         var addedVelocity = 0f;
         float maxVelocity = MaximumHorizontalVelocity;
@@ -540,7 +500,7 @@ public class Player : Entity {
 
     private void SetVerticalVelocity() {
         if  (OnGround) {
-            if (Keyboard.GetState().IsKeyDown(_keyInputs[(int) PlayerAction.Jump])) {
+            if (_activeActions[(int) PlayerAction.Jump]) {
                 Velocity.Y = -11f * Game.NativeFPS;
             }
         }
@@ -585,4 +545,40 @@ public class Player : Entity {
 
     private void UpdateVelocity(float x, float y) => 
         UpdateVelocity(x, y, MaximumHorizontalVelocity, MaximumVerticalVelocity);
+
+    private void CreateListeners() {
+        var mouseListener = new MouseListener();
+        mouseListener.MouseDown += (sender, args) => TryUseSword();
+        mouseListener.MouseWheelMoved += (sender, args) => {
+            if (args.ScrollWheelDelta > 0) {
+                ActiveSlot++;
+                ActiveSlot %= Hotbar.SlotCount;
+            }
+            else if (args.ScrollWheelDelta < 0) {
+                ActiveSlot--;
+                if (ActiveSlot < 0) {
+                    ActiveSlot = Hotbar.SlotCount - 1;
+                }
+            }
+        };
+
+        var keyListener = new KeyboardListener();
+        keyListener.KeyPressed += (sender, args) => ProcessKeyInput((PlayerAction) Array.IndexOf(_keyInputs, args.Key), true);
+        keyListener.KeyReleased += (sender, args) => ProcessKeyInput((PlayerAction) Array.IndexOf(_keyInputs, args.Key), false);
+
+        Game.GameGraphics.AddListeners(mouseListener, keyListener);
+    }
+
+    private void ProcessKeyInput(PlayerAction action, bool keyPressed) {
+        if ((int) action == -1) {
+            return;
+        }
+        _activeActions[(int) action] = keyPressed;
+        
+        if (!keyPressed) {
+            return;
+        }
+
+        TrySelectHotbarSlot(action);
+    }
 }

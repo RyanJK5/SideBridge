@@ -92,7 +92,6 @@ public class TiledWorld : IDrawable, IUpdatable {
             this[(int) (bounds.Right / TileSize), (int) (bounds.Bottom / TileSize)]
         }.Distinct().ToList();
         
-
         for (var i = 0; i < collisions.Count; i++) {
             Tile tile = collisions[i];
             if (tile.Type == TileType.Air || !tile.Bounds.Intersects(bounds)) {
@@ -154,7 +153,7 @@ public class TiledWorld : IDrawable, IUpdatable {
         }
     }
 
-    public Tile[] FindTiles(System.Predicate<Tile> testCase) {
+    public Tile[] FindTiles(Predicate<Tile> testCase) {
         var result = new List<Tile>();
         foreach (var tile in _tileGrid) {
             if (testCase.Invoke(tile)) {
