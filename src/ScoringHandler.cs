@@ -7,12 +7,11 @@ namespace SideBridge;
 public class ScoringHandler : IUpdatable {
 
     public const float PauseLength = 5f;
+    private const float TimerInactive = -1f;
 
     private readonly ScoreBar _scoreBar;
     private readonly Player _player1;
     private readonly Player _player2;
-
-    private const float TimerInactive = -1f;
 
     private float _timeToGame = TimerInactive;
 
@@ -85,7 +84,7 @@ public class ScoringHandler : IUpdatable {
 
     public static Team GetGoalTeam(Tile goal) {
         if (goal.Type != TileType.Goal) {
-            throw new ArgumentException("goal must be hold TileType TileType.Goal");
+            throw new ArgumentException("goal must have tile type TileType.Goal");
         }
         return goal.Bounds.X > Game.TiledWorld.WidthInPixels / 2 ? Team.Red : Team.Blue;
     }
@@ -113,29 +112,41 @@ public class ScoringHandler : IUpdatable {
     private void SetPlatforms(bool destroy) {
         var tileType1 = destroy ? TileType.Air : TileType.Glass;
         var tileType2 = destroy ? TileType.Air : TileType.White;
-
         int tileSize = Game.TiledWorld.TileSize;
+
         Player[] players = {_player1, _player2};
         foreach (var player in players) {
             for (var i = 0; i < 5; i++) {
                 if (i == 0 || i == 4) {
-                    for (var j = 0; j < 2; j++) {
-                        Game.TiledWorld.SetTileWithEffects(
-                            tileType1, 
-                            player.SpawnPosition.X - tileSize * 2 + tileSize * i, 
-                            player.SpawnPosition.Y - tileSize * j
-                        );
-                    }
+                    CreateWalls(player, i);
                 }
+                CreateFloor(player, i);
+                CreateCeiling(player, i);
+            }
+        }
+
+        void CreateFloor(Player player, int i) {
+            Game.TiledWorld.SetTileWithEffects(
+                tileType2, 
+                player.SpawnPosition.X - tileSize * 2 + tileSize * i, 
+                player.SpawnPosition.Y + tileSize
+            );
+        }
+
+        void CreateCeiling(Player player, int i) {
+            Game.TiledWorld.SetTileWithEffects(
+                tileType1, 
+                player.SpawnPosition.X - tileSize * 2 + tileSize * i, 
+                player.SpawnPosition.Y - tileSize * 2
+            );
+        }
+
+        void CreateWalls(Player player, int i) {
+            for (var j = 0; j < 2; j++) {
                 Game.TiledWorld.SetTileWithEffects(
                     tileType1, 
                     player.SpawnPosition.X - tileSize * 2 + tileSize * i, 
-                    player.SpawnPosition.Y - tileSize * 2
-                );
-                Game.TiledWorld.SetTileWithEffects(
-                    tileType2, 
-                    player.SpawnPosition.X - tileSize * 2 + tileSize * i, 
-                    player.SpawnPosition.Y + tileSize
+                    player.SpawnPosition.Y - tileSize * j
                 );
             }
         }
