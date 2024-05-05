@@ -587,8 +587,10 @@ public class Player : Entity {
             await GameClient.SendAction(UUID, (PlayerAction) (ActiveSlot + (int) PlayerAction.Hotbar1 - 1), true);
         };
         mouseListener.MouseMoved += async (sender, args) => {
-            MousePos = args.Position.ToVector2();
-            await GameClient.SendAction(UUID, MousePos);
+            _mousePos = args.Position.ToVector2();
+            _mousePos.X = Util.Constrict(_mousePos.X, 0, Game.GameGraphics.WindowWidth);
+            _mousePos.Y = Util.Constrict(_mousePos.Y, 0, Game.GameGraphics.WindowHeight);
+            await GameClient.SendAction(UUID, _mousePos);
         };
 
         var keyListener = new KeyboardListener();
@@ -615,5 +617,5 @@ public class Player : Entity {
         await GameClient.SendAction(UUID, action, active);
     }
 
-    public void ProcessMouseMove(Vector2 mousePos) => MousePos = mousePos;
+    public void ProcessMouseMove(Vector2 mousePos) => _mousePos = mousePos;
 }
