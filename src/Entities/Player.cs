@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Graphics;
 using System.Linq;
+using MonoGame.Extended.Input;
 
 namespace SideBridge;
 
@@ -50,29 +51,16 @@ public class Player : Entity {
     private const float SprintingSoundDelay = 0.3f;
     private const float WalkingSoundDelay = 0.45f;
 
+    public readonly ulong UUID;
+
+    private Vector2 _mousePos;
     private RectangleF _lastBounds;
-    private bool _mouseDown;
     private bool _knockedBack;
 
     public float Health { get; private set; }
     
     private int _activeSlot;
-    public int ActiveSlot { 
-        get => _activeSlot; 
-
-        private set {
-            _activeSlot = value;
-            if (ActiveSlot != Hotbar.BowSlot) {
-                _bow.Charge = 0;
-                _mouseDown = false;
-            }
-            if (ActiveSlot != Hotbar.AppleSlot) {
-                _apple.Charge = 0;
-                _eatSound.Stop();
-            }
-        } 
-    }
-
+    
     private readonly Keys[] _keyInputs;
     private readonly bool[] _activeActions;
 
@@ -80,27 +68,17 @@ public class Player : Entity {
     private readonly ChargedValue _bow;
     private readonly ChargedValue _void;
 
-    private ChargedValue[] ChargedValues => new ChargedValue[] { _apple, _bow, _void };
-    public float TimeSinceBow => _bow.TimeSince;
-
     private float _walkTime;
     private readonly SoundEffectInstance _eatSound;
     private readonly SoundEffectInstance _voidSound;
 
-    public bool OnGround => GetGroundTiles()
-        .Any(t => (TileTypes.Solid(t.Type) || (TileTypes.SemiSolid(t.Type) && !_activeActions[(int) PlayerAction.Drop])) && 
-        _lastBounds.Bottom <= t.Bounds.Top)
-    ;
-
-    public bool Sprinting { get => Velocity.X != 0 && _activeActions[(int) PlayerAction.Sprint]; }
     private bool _sprintHit;
 
     public readonly Team Team;
-    public Vector2 SpawnPosition => Team == Team.Blue 
-        ? new(420 - Bounds.Width / 2, 160) 
-        : new(Game.TiledWorld.WidthInPixels - 420 - Bounds.Width / 2, 160);
+    
+    public Player(Texture2D texture, RectangleF bounds, Team team, bool thisClient) : base(texture, bounds) {
+        UUID = team == Team.Blue ? Settings.Player1UUID : Settings.Player2UUID;
 
-    public Player(Texture2D texture, RectangleF bounds, Team team) : base(texture, bounds) {
         _keyInputs = team == Team.Blue ? Settings.DefaultPlayer1KeyBinds : Settings.DefaultPlayer2KeyBinds;
         _activeActions = new bool[Enum.GetValues<PlayerAction>().Length];
         
@@ -117,15 +95,48 @@ public class Player : Entity {
         _voidSound = Game.SoundEffectHandler.CreateInstance(SoundEffectID.Void);
         _voidSound.Volume = 0.5f;
 
-        CreateListeners();
+        if (thisClient) {
+            CreateListeners();
+        }
     }
+
+    public int ActiveSlot { 
+        get => _activeSlot; 
+
+        private set {
+            _activeSlot = value;
+            if (ActiveSlot != Hotbar.BowSlot) {
+                _bow.Charge = 0;
+            }
+            if (ActiveSlot != Hotbar.AppleSlot) {
+                _apple.Charge = 0;
+                _eatSound.Stop();
+            }
+        } 
+    }
+
+    public bool OnGround => GetGroundTiles()
+        .Any(t => (TileTypes.Solid(t.Type) || (TileTypes.SemiSolid(t.Type) && !_activeActions[(int) PlayerAction.Drop])) && 
+        _lastBounds.Bottom <= t.Bounds.Top)
+    ;
+
+    public float TimeSinceBow => _bow.TimeSince;
+
+    public bool Sprinting { get => Velocity.X != 0 && _activeActions[(int) PlayerAction.Sprint]; }
+
+    private ChargedValue[] ChargedValues => new ChargedValue[] { _apple, _bow, _void };
+
+    public Vector2 SpawnPosition => Team == Team.Blue 
+        ? new(420 - Bounds.Width / 2, 160) 
+        : new(Game.TiledWorld.WidthInPixels - 420 - Bounds.Width / 2, 160);
+
+    public Vector2 MousePos { get => Game.GameCamera.ScreenToWorld(_mousePos); private set => _mousePos = value; }
 
     public override void Draw(SpriteBatch spriteBatch) {
         base.Draw(spriteBatch);
-        Vector2 mousePos = Game.GameCamera.ScreenToWorld(Mouse.GetState().Position.ToVector2());
         if (ActiveSlot == Hotbar.SwordSlot && Settings.GameState == GameState.InGame) {
             Vector2 center = Bounds.Center;
-            Vector2 vecLine = mousePos - center;
+            Vector2 vecLine = MousePos - center;
             vecLine.Normalize();
             vecLine *= TileReach * Game.TiledWorld.TileSize;
             
@@ -243,11 +254,14 @@ public class Player : Entity {
         
         _bow.Reset();
         _apple.Restart();
+
+        ProcessActionInternal(PlayerAction.LeftMouse, false);
+        ProcessActionInternal(PlayerAction.RightMouse, false);
     }
 
     public void RegisterDamage(float dmg) {
         Health -= dmg;
-        _activeActions[(int) PlayerAction.Sprint] = false;
+        ProcessActionInternal(PlayerAction.Sprint, false);
         if (Health <= 0) {
             OnDeath();
             Game.SoundEffectHandler.PlaySound(SoundEffectID.Kill);
@@ -294,10 +308,9 @@ public class Player : Entity {
         if (ActiveSlot != Hotbar.SwordSlot || Settings.GameState != GameState.InGame) {
             return;
         }
-        Vector2 mousePos = Game.GameCamera.ScreenToWorld(Mouse.GetState().Position.ToVector2());
-        Vector2 vecLine = (mousePos - (Vector2) Bounds.Center).NormalizedCopy() * (TileReach * Game.TiledWorld.TileSize);
+        Vector2 vecLine = (MousePos - (Vector2) Bounds.Center).NormalizedCopy() * (TileReach * Game.TiledWorld.TileSize);
 
-        var player = Game.EntityWorld.FindEntity<Player>(entity => entity != this && findIntersection(entity.Bounds).intersects);
+        var player = Game.EntityWorld.Find<Player>(entity => entity != this && findIntersection(entity.Bounds).intersects);
         if (player != null) {
             Tile[] tiles = Game.TiledWorld.FindTiles(tile => findIntersection(tile.Bounds).intersects && TileTypes.Solid(tile.Type));
             foreach (var tile in tiles) {
@@ -322,12 +335,10 @@ public class Player : Entity {
         if (_bow.OnCooldown) {
             return;
         }
-        var mouseState = Mouse.GetState();
-        if (mouseState.LeftButton == ButtonState.Pressed) {
-            _mouseDown = true;
+        if (_activeActions[(int) PlayerAction.LeftMouse]) {
             _bow.Increment(gameTime.GetElapsedSeconds(), true);
         }
-        if (_mouseDown && mouseState.LeftButton == ButtonState.Released) {
+        else if (_bow.Charge > 0) {
             CreateArrow();
             _bow.Restart();
         }
@@ -336,25 +347,23 @@ public class Player : Entity {
     private void TryModifyBlock() {
         int tileSize = Game.TiledWorld.TileSize;
         
-        Vector2 mousePos = Game.GameCamera.ScreenToWorld(Mouse.GetState().Position.ToVector2());
-        var tileX = (int) (mousePos.X / tileSize) * tileSize;
-        var tileY = (int) (mousePos.Y / tileSize) * tileSize;
+        var tileX = (int) (MousePos.X / tileSize) * tileSize;
+        var tileY = (int) (MousePos.Y / tileSize) * tileSize;
         bool inRange = Vector2.Distance(new(tileX, tileY), Bounds.Position) < TileReach * tileSize && 
             tileY / tileSize >= TiledWorld.HeightLimit && 
             tileX / tileSize > TiledWorld.IslandWidths - 1 && 
             tileX / tileSize < Game.TiledWorld.WidthInPixels / tileSize - TiledWorld.IslandWidths;
-        if (Mouse.GetState().LeftButton == ButtonState.Pressed && inRange && Game.TiledWorld.GetTile(mousePos.X, mousePos.Y).Type == TileType.Air) {
-            PlaceTile(tileX, tileY, mousePos);
+        if (_activeActions[(int) PlayerAction.LeftMouse] && inRange && Game.TiledWorld.GetTile(MousePos.X, MousePos.Y).Type == TileType.Air) {
+            PlaceTile(tileX, tileY);
             return;
         }
-        if (Mouse.GetState().RightButton == ButtonState.Pressed && inRange) {
-            Game.TiledWorld.DamageTile(Game.TiledWorld.GetTile(mousePos.X, mousePos.Y));
+        if (_activeActions[(int) PlayerAction.RightMouse] && inRange) {
+            Game.TiledWorld.DamageTile(Game.TiledWorld.GetTile(MousePos.X, MousePos.Y));
         }
     }
     
     private void TryEatApple(GameTime gameTime) {
-        var mouseState = Mouse.GetState();
-        if (_apple.OnCooldown || mouseState.LeftButton != ButtonState.Pressed) {
+        if (_apple.OnCooldown || !_activeActions[(int) PlayerAction.LeftMouse]) {
             _eatSound.Stop();
             _apple.Charge = 0;
             return;
@@ -405,16 +414,12 @@ public class Player : Entity {
         );
         Game.SoundEffectHandler.PlaySound(SoundEffects.GetRandomBowSound());
 
-        
         arrow.Velocity = CalculateArrowLaunchVelocity(spawnPos);
         Game.EntityWorld.Add(arrow);
-
-        _mouseDown = false;
     }
 
     private Vector2 CalculateArrowLaunchVelocity(Vector2 spawnPos) {
-        Vector2 target = Game.GameCamera.ScreenToWorld(Mouse.GetState().Position.ToVector2());
-        return (new Vector2(target.X, target.Y) - spawnPos).NormalizedCopy() * 
+        return (new Vector2(MousePos.X, MousePos.Y) - spawnPos).NormalizedCopy() * 
             (_bow.Charge / BowChargeTime * ArrowVelocityFactor);
     }
 
@@ -433,10 +438,10 @@ public class Player : Entity {
         }
     }
 
-    private void PlaceTile(float tileX, float tileY, Vector2 mousePos) {
+    private void PlaceTile(float tileX, float tileY) {
         int tileSize = Game.TiledWorld.TileSize;
 
-        if (Game.EntityWorld.FindEntity<Player>(player => player.Bounds.Intersects(new(tileX, tileY, tileSize, tileSize))) != null) {
+        if (Game.EntityWorld.Find<Player>(player => player.Bounds.Intersects(new(tileX, tileY, tileSize, tileSize))) != null) {
             return;
         }
         Vector2[] adjacentTiles = {
@@ -446,15 +451,18 @@ public class Player : Entity {
             new(0, tileSize)
         };
         foreach (var vec in adjacentTiles) {
-            if (mousePos.X + vec.X > Game.TiledWorld.WidthInPixels || mousePos.X + vec.X < 0 || 
-                mousePos.Y + vec.Y > Game.TiledWorld.HeightInPixels || mousePos.Y + vec.Y < 0) {
+            if (MousePos.X + vec.X > Game.TiledWorld.WidthInPixels || MousePos.X + vec.X < 0 || 
+                MousePos.Y + vec.Y > Game.TiledWorld.HeightInPixels || MousePos.Y + vec.Y < 0) {
                 continue;
             }
-            TileType type = Game.TiledWorld.GetTile(mousePos.X + vec.X, mousePos.Y + vec.Y).Type;
+            TileType type = Game.TiledWorld.GetTile(MousePos.X + vec.X, MousePos.Y + vec.Y).Type;
             if (TileTypes.Solid(type) || TileTypes.SemiSolid(type)) {
                 var normalBlockType = Team == Team.Red ? TileType.Red : TileType.Blue;
                 var darkBlockType = Team == Team.Red ? TileType.DarkRed : TileType.DarkBlue;
-                Game.TiledWorld.SetTileWithEffects(tileY / tileSize <= TiledWorld.HeightLimit ? darkBlockType : normalBlockType, mousePos.X, mousePos.Y);
+                Game.TiledWorld.SetTileWithEffects(tileY / tileSize <= TiledWorld.HeightLimit 
+                    ? darkBlockType 
+                    : normalBlockType, 
+                MousePos.X, MousePos.Y);
                 break;
             }
         }
@@ -548,8 +556,24 @@ public class Player : Entity {
 
     private void CreateListeners() {
         var mouseListener = new MouseListener();
-        mouseListener.MouseDown += (sender, args) => TryUseSword();
-        mouseListener.MouseWheelMoved += (sender, args) => {
+        mouseListener.MouseDown += (sender, args) => {
+            if (args.Button == MouseButton.Left) {
+                ProcessActionInternal(PlayerAction.LeftMouse, true);
+            }
+            else if (args.Button == MouseButton.Right) {
+                ProcessActionInternal(PlayerAction.RightMouse, true);
+            }
+            TryUseSword();
+        };
+        mouseListener.MouseUp += (sender, args) => {
+            if (args.Button == MouseButton.Left) {
+                ProcessActionInternal(PlayerAction.LeftMouse, false);
+            }
+            else if (args.Button == MouseButton.Right) {
+                ProcessActionInternal(PlayerAction.RightMouse, false);
+            }
+        };
+        mouseListener.MouseWheelMoved += async (sender, args) => {
             if (args.ScrollWheelDelta > 0) {
                 ActiveSlot++;
                 ActiveSlot %= Hotbar.SlotCount;
@@ -560,25 +584,36 @@ public class Player : Entity {
                     ActiveSlot = Hotbar.SlotCount - 1;
                 }
             }
+            await GameClient.SendAction(UUID, (PlayerAction) (ActiveSlot + (int) PlayerAction.Hotbar1 - 1), true);
+        };
+        mouseListener.MouseMoved += async (sender, args) => {
+            MousePos = args.Position.ToVector2();
+            await GameClient.SendAction(UUID, MousePos);
         };
 
         var keyListener = new KeyboardListener();
-        keyListener.KeyPressed += (sender, args) => ProcessKeyInput((PlayerAction) Array.IndexOf(_keyInputs, args.Key), true);
-        keyListener.KeyReleased += (sender, args) => ProcessKeyInput((PlayerAction) Array.IndexOf(_keyInputs, args.Key), false);
+        keyListener.KeyPressed += (sender, args) => ProcessActionInternal((PlayerAction) Array.IndexOf(_keyInputs, args.Key), true);
+        keyListener.KeyReleased += (sender, args) => ProcessActionInternal((PlayerAction) Array.IndexOf(_keyInputs, args.Key), false);
 
         Game.GameGraphics.AddListeners(mouseListener, keyListener);
     }
 
-    private void ProcessKeyInput(PlayerAction action, bool keyPressed) {
-        if ((int) action == -1) {
-            return;
-        }
-        _activeActions[(int) action] = keyPressed;
+    public void ProcessAction(PlayerAction action, bool active) {
+        _activeActions[(int) action] = active;
         
-        if (!keyPressed) {
+        if (!active) {
             return;
         }
-
         TrySelectHotbarSlot(action);
     }
+
+    private async void ProcessActionInternal(PlayerAction action, bool active) {
+        if ((int) action == -1 || _activeActions[(int) action] == active) {
+            return;
+        }
+        ProcessAction(action, active);
+        await GameClient.SendAction(UUID, action, active);
+    }
+
+    public void ProcessMouseMove(Vector2 mousePos) => MousePos = mousePos;
 }

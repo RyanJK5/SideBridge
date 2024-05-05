@@ -48,7 +48,7 @@ public class EntityWorld : IDrawable, IUpdatable {
     public void Remove(Entity entity) => _entities.Remove(entity);
     public bool Contains(Entity entity) => _entities.Contains(entity);
 
-    public T? FindEntity<T>(Predicate<T> testCase) {
+    public T? Find<T>(Predicate<T> testCase) where T : Entity {
         foreach (Entity entity in _entities) {
             if (entity is T result && testCase.Invoke(result)) {
                 return result;

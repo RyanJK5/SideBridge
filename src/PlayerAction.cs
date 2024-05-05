@@ -10,5 +10,7 @@ public enum PlayerAction {
     Hotbar1,
     Hotbar2,
     Hotbar3,
-    Hotbar4
+    Hotbar4,
+    LeftMouse,
+    RightMouse
 }

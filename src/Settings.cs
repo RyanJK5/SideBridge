@@ -5,6 +5,10 @@ namespace SideBridge;
 
 public static class Settings {
 
+    public const ulong Player1UUID = 16065190728990054510;
+    public const ulong Player2UUID = 08012554917923822505;
+
+
     public readonly static Keys[] DefaultPlayer1KeyBinds = new Keys[] {
         Keys.A,
         Keys.D,

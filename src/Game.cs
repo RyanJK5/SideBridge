@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
@@ -83,7 +83,8 @@ internal class Game {
             players[i] = new Player(
                 playerTexture,
                 playerTexture.Bounds,
-                (Team) i
+                (Team) i,
+                i == 0
             );
             _entityWorld.Add(players[i]);
         }
