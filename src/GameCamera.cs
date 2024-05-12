@@ -21,19 +21,25 @@ public class GameCamera : IUpdatable {
 
     private readonly OrthographicCamera _camera;
     private readonly Player _player1;
-    private readonly Player _player2;
+    private Player _player2;
 
     public float Zoom { get => _camera.Zoom; set => _camera.Zoom = value;}
 
     public Vector2 Center { get => _camera.Center; } 
 
-    public GameCamera(OrthographicCamera camera, Player p1, Player p2) {
+    public GameCamera(OrthographicCamera camera, Player p1) {
         _camera = camera;
         _player1 = p1;
-        _player2 = p2;
     } 
 
+    public void AddPlayer(Player p2) => _player2 = p2;
+
     public void Update(GameTime gameTime) {
+        if (_player2 is null) {
+            _camera.LookAt(_player1.Bounds.Center);
+            return;
+        }
+
         float oldZoom = Zoom;
         float oldY = Center.Y;
 

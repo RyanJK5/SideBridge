@@ -34,7 +34,6 @@ public static class GameClient {
 
     public static async Task WaitForPlayers(int targetPlayerCount) {
         while (PlayerCount < targetPlayerCount) {
-            Console.WriteLine(PlayerCount);
             await ReceiveAction();
         }
         new Task(async () => await Listen()).Start();
@@ -60,6 +59,7 @@ public static class GameClient {
         int firstPipe = message.IndexOf(Delimeter);
         if (firstPipe < 0) {
             PlayerCount = int.Parse(message);
+            Game.AddPlayer(PlayerCount - 1);
             return;
         }
 

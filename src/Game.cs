@@ -65,35 +65,31 @@ internal class Game {
         _tiledWorld.LoadMap(loader, WorldType.Lobby);
         Settings.GameState = GameState.Lobby;
 
-        Player[] players = CreatePlayers(loader);
-        CreateUI(loader, players);
+        Player player = CreatePlayer(loader, 0);
+        CreateUI(loader, player, 0);
 
         var viewportAdapter = new BoxingViewportAdapter(_gameGraphics.Window, graphicsDevice, 1920, 1080);
         var camera = new OrthographicCamera(viewportAdapter) {
             MinimumZoom = GameCamera.MinimumZoom,
             MaximumZoom = GameCamera.MaximumZoom
         };
-        _gameCamera = new GameCamera(camera, players[0], players[1]);
+        _gameCamera = new GameCamera(camera, player);
     }
 
-    private Player[] CreatePlayers(ContentManager loader) {
-        var players = new Player[2];
+    private Player CreatePlayer(ContentManager loader, int playerNum) {
         var playerTexture = loader.Load<Texture2D>("img/player");
         
-        for (var i = 0; i < players.Length; i++) {
-            players[i] = new Player(
-                playerTexture,
-                playerTexture.Bounds,
-                (Team) i,
-                i == 0
-            );
-            _entityWorld.Add(players[i]);
-        }
-
-        return players;
+        var player = new Player(
+            playerTexture,
+            playerTexture.Bounds,
+            (Team) playerNum,
+            playerNum == 0
+        );
+        _entityWorld.Add(player);
+        return player;
     }
 
-    private void CreateUI(ContentManager loader, Player[] players) {
+    private void CreateUI(ContentManager loader, Player player, int playerNum) {
         var fullHealthBarTexture = loader.Load<Texture2D>("img/healthbar-full"); 
         var emptyHealthBarTexture = loader.Load<Texture2D>("img/healthbar-empty");
         var goldenHealthBarTexture = loader.Load<Texture2D>("img/healthbar-golden");
@@ -108,28 +104,32 @@ internal class Game {
             new(hotbarX, hotbarTexture.Height / 2 + 5)
         );
         ui.Add(scoreBar);
-        _scoringHandler = new ScoringHandler(scoreBar, players[0], players[1]);
+        _scoringHandler = new ScoringHandler(scoreBar, player, null);
 
-        for (var i = 0; i < players.Length; i++) {
-            ui.Add(new HealthBar(
-                players[i], 
-                fullHealthBarTexture, 
-                emptyHealthBarTexture, 
-                goldenHealthBarTexture, 
-                (Team) i == Team.Blue 
-                    ? new(10, 10)
-                    : new(_gameGraphics.WindowWidth - 10 - fullHealthBarTexture.Width, 
-                        _gameGraphics.WindowHeight - fullHealthBarTexture.Height - 10)
-            ));
-            ui.Add(new Hotbar(
-                players[i], 
-                hotbarTexture, 
-                (Team) i == Team.Blue
-                    ? new(hotbarX, 0)
-                    : new(_gameGraphics.WindowWidth / 2 - hotbarTexture.Width / 2, 
-                        _gameGraphics.WindowHeight - hotbarTexture.Height / 2)
-            ));
-        }
+        ui.Add(new HealthBar(
+            player, 
+            fullHealthBarTexture, 
+            emptyHealthBarTexture, 
+            goldenHealthBarTexture, 
+            (Team) playerNum == Team.Blue 
+                ? new(10, 10)
+                : new(_gameGraphics.WindowWidth - 10 - fullHealthBarTexture.Width, 
+                    _gameGraphics.WindowHeight - fullHealthBarTexture.Height - 10)
+        ));
+        ui.Add(new Hotbar(
+            player, 
+            hotbarTexture, 
+            (Team) playerNum == Team.Blue
+                ? new(hotbarX, 0)
+                : new(_gameGraphics.WindowWidth / 2 - hotbarTexture.Width / 2, 
+                    _gameGraphics.WindowHeight - hotbarTexture.Height / 2)
+        ));
         _uiHandler = new UIHandler(ui.ToArray());
+    }
+
+    public static void AddPlayer(int playerNum) {
+        Player player = s_main.CreatePlayer(GameGraphics.Content, playerNum); 
+        s_main.CreateUI(GameGraphics.Content, player, playerNum);
+        GameCamera.AddPlayer(player);
     }
 }

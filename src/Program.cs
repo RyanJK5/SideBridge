@@ -1,4 +1,9 @@
+using System.Threading.Tasks;
 using SideBridge;
 
-await GameClient.Connect();
-Game.Start();
+internal class Program {
+    static async Task Main() {
+        await GameClient.Connect();
+        Game.Start();
+    }
+}
