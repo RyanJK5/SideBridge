@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
@@ -43,7 +44,7 @@ internal class Game {
     public static void Start() {
         s_main = new Game();
         s_main.InitializeFields();
-        ScoringHandler.StartGameIn(ScoringHandler.PauseLength);
+        new Task(async () => await ScoringHandler.WaitForPlayerTwo()).Start();
         GameGraphics.Run();
     }
 

@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 
@@ -56,6 +57,11 @@ public class ScoringHandler : IUpdatable {
     }
 
     public void StartGameIn(float seconds) => _timeToGame = seconds;
+
+    public async Task WaitForPlayerTwo() {
+        await GameClient.WaitForPlayers(2);
+        StartGameIn(PauseLength);
+    }
 
     public void EndGame(Team team) {
         Game.SoundEffectHandler.PlaySound(SoundEffectID.Win);
