@@ -33,6 +33,8 @@ internal class Game {
     public const float Gravity = 1f * NativeFPS;
     public const float NativeFPS = 60f;
 
+    public const int ThisClientPlayer = 0;
+
     public static IDrawable[] Drawables() => 
         new IDrawable[] { TiledWorld, EntityWorld, ParticleEffectHandler, UIHandler }
     ;
@@ -65,8 +67,8 @@ internal class Game {
         _tiledWorld.LoadMap(loader, WorldType.Lobby);
         Settings.GameState = GameState.Lobby;
 
-        Player player = CreatePlayer(loader, 0);
-        CreateUI(loader, player, 0);
+        Player player = CreatePlayer(loader, ThisClientPlayer);
+        CreateUI(loader, player, ThisClientPlayer);
 
         var viewportAdapter = new BoxingViewportAdapter(_gameGraphics.Window, graphicsDevice, 1920, 1080);
         var camera = new OrthographicCamera(viewportAdapter) {
@@ -83,7 +85,7 @@ internal class Game {
             playerTexture,
             playerTexture.Bounds,
             (Team) playerNum,
-            playerNum == 0
+            playerNum == ThisClientPlayer
         );
         _entityWorld.Add(player);
         return player;
